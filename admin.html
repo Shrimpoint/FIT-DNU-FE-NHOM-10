@@ -1,12 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <script type="" src="/PROJECT/FIT-DNU-FE-NHOM-1/JS/admin.js"></script>
+    <title>Admin Dashboard - ArtGallery</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <script src="/_sdk/data_sdk.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { height: 100%; margin: 0; }
+        body { font-family: 'Outfit', sans-serif; }
+        .font-heading { font-family: 'Playfair Display', serif; }
+        .gradient-text { background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12); }
+        .glass-light { background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+    </style>
 </head>
 <body>
-    
+<body class="h-full bg-slate-50 text-slate-900 overflow-auto flex flex-col">
+    <!-- Admin Navigation -->
+    <nav class="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-slate-900 p-1 flex items-center justify-center">
+                    <i data-lucide="shield" class="w-5 h-5 text-white"></i>
+                </div>
+                <span class="font-heading font-bold text-2xl text-slate-900">Admin Panel</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="index.html" class="px-4 py-2 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition flex items-center gap-2"> 
+                    <i data-lucide="external-link" class="w-4 h-4"></i> View Public Site 
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-8">
+        <div class="mb-8">
+            <h2 class="font-heading font-bold text-3xl mb-2">Dashboard</h2>
+            <p class="text-slate-600">Manage artworks and artists</p>
+        </div>
+
+        <!-- Admin Tabs -->
+        <div class="flex gap-4 mb-8 border-b border-slate-200">
+            <button id="tab-artworks" class="px-4 py-3 font-medium border-b-2 border-pink-600 text-pink-600 transition flex items-center gap-2"> 
+                <i data-lucide="image" class="w-4 h-4"></i> Artworks 
+            </button> 
+            <button id="tab-artists" class="px-4 py-3 font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition flex items-center gap-2"> 
+                <i data-lucide="users" class="w-4 h-4"></i> Artists 
+            </button> 
+            <button id="tab-analytics" class="px-4 py-3 font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition flex items-center gap-2"> 
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Analytics 
+            </button>
+        </div>
+
+        <!-- Artworks Tab -->
+        <div id="artworks-tab" class="space-y-6">
+            <!-- Add Artwork Form -->
+            <div class="glass-light rounded-2xl p-8">
+                <h3 class="font-heading font-bold text-xl mb-6 flex items-center gap-2"><i data-lucide="plus" class="w-5 h-5 text-pink-600"></i> Add New Artwork</h3>
+                <form id="artwork-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input id="art-title" type="text" placeholder="Artwork Title" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> 
+                    <input id="art-artist" type="text" placeholder="Artist Name" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> 
+                    <select id="art-style" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> 
+                        <option value="">Select Style</option> 
+                        <option value="abstract">Abstract</option> 
+                        <option value="landscape">Landscape</option> 
+                        <option value="portrait">Portrait</option> 
+                        <option value="digital">Digital</option> 
+                    </select> 
+                    <input id="art-year" type="number" placeholder="Year" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> 
+                    <input id="art-image" type="url" placeholder="Image URL (https://)" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 md:col-span-2" required> 
+                    <textarea id="art-description" placeholder="Description" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 md:col-span-2" rows="3"></textarea> 
+                    <button type="submit" class="md:col-span-2 px-6 py-3 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"> 
+                        <i data-lucide="save" class="w-4 h-4"></i> <span id="form-btn-text">Add Artwork</span> 
+                    </button>
+                </form>
+            </div>
+
+            <!-- Artworks List -->
+            <div>
+                <h3 class="font-heading font-bold text-xl mb-4">Artwork Submissions</h3>
+                <div id="admin-artworks-list" class="space-y-4">
+                    <p class="text-slate-500 py-8 text-center">Loading artworks...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Artists Tab -->
+        <div id="artists-tab" class="hidden">
+            <div class="glass-light rounded-2xl p-8">
+                <div id="admin-artists-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <p class="text-slate-500 col-span-2 py-8 text-center">Loading artists...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-light rounded-2xl p-8 text-center">
+                    <div class="text-sm text-slate-600 mb-2">Total Artworks</div>
+                    <div id="stat-artworks" class="font-heading font-bold text-4xl gradient-text">0</div>
+                </div>
+                <div class="glass-light rounded-2xl p-8 text-center">
+                    <div class="text-sm text-slate-600 mb-2">Total Likes</div>
+                    <div id="stat-likes" class="font-heading font-bold text-4xl gradient-text">0</div>
+                </div>
+                <div class="glass-light rounded-2xl p-8 text-center">
+                    <div class="text-sm text-slate-600 mb-2">Top Artwork</div>
+                    <div id="stat-top" class="font-heading font-bold text-2xl text-pink-600 truncate">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        let allArtworks = [];
+
+        // Data SDK Handler
+        const dataHandler = {
+            onDataChanged(data) {
+                allArtworks = data || [];
+                updateAdminDashboard();
+            }
+        };
+
+        // Initialize Application
+        async function initializeApp() {
+            if (window.dataSdk) {
+                const result = await window.dataSdk.init(dataHandler);
+                if (!result.isOk) {
+                    console.error('Failed to initialize data SDK:', result.error);
+                }
+            }
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            document.getElementById('tab-artworks').addEventListener('click', () => switchAdminTab('artworks'));
+            document.getElementById('tab-artists').addEventListener('click', () => switchAdminTab('artists'));
+            document.getElementById('tab-analytics').addEventListener('click', () => switchAdminTab('analytics'));
+            document.getElementById('artwork-form').addEventListener('submit', handleAddArtwork);
+        }
+
+        function switchAdminTab(tab) {
+            document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+                btn.classList.remove('border-pink-600', 'text-pink-600');
+                btn.classList.add('border-transparent', 'text-slate-600');
+            });
+            document.getElementById(`tab-${tab}`).classList.add('border-pink-600', 'text-pink-600');
+
+            document.querySelectorAll('[id$="-tab"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`${tab}-tab`).classList.remove('hidden');
+        }
+
+        function updateAdminDashboard() {
+            // Artworks list
+            const artList = document.getElementById('admin-artworks-list');
+            if (allArtworks.length === 0) {
+                artList.innerHTML = '<p class="text-slate-500 py-8 text-center">No artworks yet.</p>';
+            } else {
+                artList.innerHTML = allArtworks.map(art => `
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-slate-900">${art.title}</h4>
+                            <p class="text-sm text-slate-600">${art.artist} • ${art.style}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-medium text-pink-600">${art.likes || 0} likes</span>
+                            <button class="p-2 hover:bg-red-100 rounded-lg transition text-red-600" onclick="deleteArtwork('${art.__backendId}')">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Artists list
+            const artists = [...new Set(allArtworks.map(a => a.artist))];
+            const artistsList = document.getElementById('admin-artists-list');
+            if (artists.length === 0) {
+                artistsList.innerHTML = '<p class="text-slate-500 col-span-2 py-8 text-center">No artists yet.</p>';
+            } else {
+                artistsList.innerHTML = artists.map(artist => {
+                    const artworks = allArtworks.filter(a => a.artist === artist);
+                    const totalLikes = artworks.reduce((sum, a) => sum + (a.likes || 0), 0);
+                    return `
+                        <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                            <h4 class="font-heading font-bold text-lg text-slate-900">${artist}</h4>
+                            <p class="text-sm text-slate-600 mt-1">${artworks.length} artwork${artworks.length !== 1 ? 's' : ''}</p>
+                            <p class="text-sm text-pink-600 mt-2 font-medium">${totalLikes} total likes</p>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Analytics
+            const totalLikes = allArtworks.reduce((sum, a) => sum + (a.likes || 0), 0);
+            const topArtwork = allArtworks.length > 0 ? allArtworks.reduce((max, a) => (a.likes || 0) > (max.likes || 0) ? a : max) : null;
+
+            document.getElementById('stat-artworks').textContent = allArtworks.length;
+            document.getElementById('stat-likes').textContent = totalLikes;
+            document.getElementById('stat-top').textContent = topArtwork ? topArtwork.title.substring(0, 20) : '—';
+
+            lucide.createIcons();
+        }
+
+        async function handleAddArtwork(e) {
+            e.preventDefault();
+            const artworkData = {
+                title: document.getElementById('art-title').value,
+                artist: document.getElementById('art-artist').value,
+                style: document.getElementById('art-style').value,
+                year: parseInt(document.getElementById('art-year').value),
+                image_url: document.getElementById('art-image').value,
+                description: document.getElementById('art-description').value,
+                likes: 0,
+                is_approved: true
+            };
+
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Saving...';
+
+            if (window.dataSdk) {
+                const result = await window.dataSdk.create(artworkData);
+                if (result.isOk) {
+                    e.target.reset();
+                } else {
+                    alert('Error adding artwork. Please try again.');
+                }
+            }
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Add Artwork';
+            lucide.createIcons();
+        }
+
+        async function deleteArtwork(id) {
+            if (confirm('Delete this artwork?')) {
+                const artwork = allArtworks.find(a => a.__backendId === id);
+                if (artwork && window.dataSdk) {
+                    const result = await window.dataSdk.delete(artwork);
+                    if (!result.isOk) {
+                        alert('Error deleting artwork');
+                    }
+                }
+            }
+        }
+
+        // Start the app
+        initializeApp();
+    </script>
 </body>
 </html>

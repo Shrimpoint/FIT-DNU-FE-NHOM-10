@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArtGallery - Discover Contemporary Art</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&amp;family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Outfit', sans-serif; }
+    .font-heading { font-family: 'Playfair Display', serif; }
+
+    @keyframes float-slow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
+    @keyframes pulse-glow { 0%,100%{opacity:0.3} 50%{opacity:0.6} }
+    @keyframes shimmer { 0%{background-position:0% 0%} 100%{background-position:100% 100%} }
+    @keyframes card-entrance { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+    .float-slow { animation: float-slow 8s ease-in-out infinite; }
+    .pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
+    .card-entrance { animation: card-entrance 0.6s ease-out forwards; }
+    .shimmer-gradient { background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff, #ff006e); background-size: 200% 200%; animation: shimmer 6s ease infinite; }
+
+    .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12); }
+    .glass-light { background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+
+    .art-card { 
+      transition: all 0.5s cubic-bezier(0.23, 1, 0.320, 1);
+      position: relative;
+      overflow: hidden;
+      border-radius: 16px;
+    }
+    .art-card:hover { transform: translateY(-12px); }
+    .art-card-img { width: 100%; height: 280px; object-fit: cover; transition: transform 0.5s ease; }
+    .art-card:hover .art-card-img { transform: scale(1.05); }
+
+    .like-btn { transition: all 0.3s ease; }
+    .like-btn.liked { transform: scale(1.2); }
+    .like-btn:active { transform: scale(0.95); }
+
+    .filter-tag {
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    .filter-tag.active { border-color: currentColor; }
+
+    .gradient-text { background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900 overflow-auto">
+  <div id="app" class="w-full min-h-full flex flex-col">
+   <!-- Background Elements -->
+   <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
+    <div class="absolute top-0 right-0 w-96 h-96 bg-pink-300/10 rounded-full blur-3xl pulse-glow"></div>
+    <div class="absolute bottom-20 left-0 w-80 h-80 bg-blue-300/10 rounded-full blur-3xl pulse-glow" style="animation-delay:2s"></div>
+    <div class="absolute top-1/2 left-1/2 w-72 h-72 bg-purple-300/10 rounded-full blur-3xl pulse-glow" style="animation-delay:1s"></div>
+   </div><!-- Navigation -->
+   <nav class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-slate-200/50">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
+     <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl shimmer-gradient p-1 flex items-center justify-center">
+       <i data-lucide="palette" class="w-5 h-5 text-white"></i>
+      </div><span id="nav-title" class="font-heading font-bold text-2xl gradient-text">ArtGallery</span>
+     </div>
+     <div class="flex items-center gap-3">
+      <div class="relative hidden md:block"><input id="search-input" type="text" placeholder="Search artworks..." class="pl-10 pr-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm w-64"> <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+      </div><button id="toggle-admin" class="px-4 py-2 text-sm font-medium rounded-lg glass hover:bg-slate-100/50 transition flex items-center gap-2"> <i data-lucide="lock" class="w-4 h-4"></i> <span id="admin-label">Admin</span> </button> <button id="toggle-theme" class="p-2 rounded-lg hover:bg-slate-100 transition"> <i data-lucide="sun" class="w-5 h-5"></i> </button>
+     </div>
+    </div>
+   </nav><!-- Public Gallery View -->
+   <div id="public-view" class="flex-1">
+    <!-- Hero -->
+    <section class="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-24">
+     <div class="text-center mb-16">
+      <h1 id="gallery-title" class="font-heading font-black text-5xl md:text-6xl mb-4 gradient-text">ArtGallery</h1>
+      <p id="gallery-subtitle" class="text-xl text-slate-600 max-w-2xl mx-auto">Discover contemporary art from talented artists worldwide. Curated collections of inspiring work.</p>
+     </div><!-- Filter Section -->
+     <div class="mb-12">
+      <div class="glass-light rounded-2xl p-6 md:p-8">
+       <h2 class="font-heading font-bold text-xl mb-4 flex items-center gap-2"><i data-lucide="sliders" class="w-5 h-5 text-pink-600"></i> Filter by Style</h2>
+       <div id="filter-container" class="flex flex-wrap gap-3">
+        <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium active hover:bg-slate-200 transition" data-style="all"> All Styles </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="abstract"> Abstract </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="landscape"> Landscape </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="portrait"> Portrait </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="digital"> Digital </button>
+       </div>
+      </div>
+     </div>
+    </section><!-- Masonry Gallery -->
+    <section class="max-w-7xl mx-auto px-4 md:px-8 pb-20">
+     <div id="gallery-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-max">
+      <!-- Gallery cards populated by JS -->
+     </div>
+     <div id="empty-state" class="text-center py-16">
+      <i data-lucide="image" class="w-16 h-16 mx-auto text-slate-300 mb-4"></i>
+      <p class="text-slate-500 text-lg">No artworks yet. Check back soon!</p>
+     </div>
+    </section>
+   </div><!-- Artwork Detail Modal -->
+   <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="modal-backdrop"></div>
+    <div class="relative glass-light rounded-2xl max-w-2xl w-full max-h-90vh overflow-y-auto">
+     <div class="sticky top-0 flex items-center justify-between p-6 border-b border-slate-200/30 bg-white/80 backdrop-blur-sm">
+      <h3 id="modal-title" class="font-heading font-bold text-2xl">Artwork Title</h3><button id="close-modal" class="p-2 hover:bg-slate-100 rounded-lg transition"><i data-lucide="x" class="w-5 h-5"></i></button>
+     </div>
+     <div class="p-6 space-y-6">
+      <div id="modal-image" class="w-full h-96 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl overflow-hidden flex items-center justify-center"><img src="" alt="" class="w-full h-full object-cover" onerror="this.style.background='linear-gradient(135deg, #ff006e, #8338ec)'">
+      </div>
+      <div class="space-y-3">
+       <div class="flex items-center justify-between">
+        <div>
+         <p id="modal-artist" class="text-sm text-slate-600 mb-1">Artist Name</p>
+         <p id="modal-style" class="inline-block text-xs px-3 py-1 rounded-full bg-pink-100 text-pink-700 font-medium">Style</p>
+        </div>
+        <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50"><i data-lucide="heart" class="w-5 h-5 text-pink-600"></i> <span id="modal-likes" class="font-semibold text-lg">0</span>
+        </div>
+       </div>
+       <p id="modal-description" class="text-slate-700 leading-relaxed">Artwork description...</p>
+       <div class="flex items-center justify-between pt-4 border-t border-slate-100"><span class="text-sm text-slate-600" id="modal-year">Year: 2024</span> <button id="modal-like-btn" class="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all flex items-center gap-2"> <i data-lucide="heart" class="w-4 h-4"></i> Like This Artwork </button>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div><!-- Admin Dashboard View -->
+   <div id="admin-view" class="hidden flex-1 flex flex-col">
+    <div class="flex-1 max-w-7xl w-full mx-auto px-4 md:px-8 py-8">
+     <!-- Admin Header -->
+     <div class="mb-8">
+      <h2 class="font-heading font-bold text-3xl mb-2">Dashboard</h2>
+      <p class="text-slate-600">Manage artworks and artists</p>
+     </div><!-- Admin Tabs -->
+     <div class="flex gap-4 mb-8 border-b border-slate-200">
+      <button id="tab-artworks" class="px-4 py-3 font-medium border-b-2 border-pink-600 text-pink-600 transition flex items-center gap-2"> <i data-lucide="image" class="w-4 h-4"></i> Artworks </button> <button id="tab-artists" class="px-4 py-3 font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition flex items-center gap-2"> <i data-lucide="users" class="w-4 h-4"></i> Artists </button> <button id="tab-analytics" class="px-4 py-3 font-medium border-b-2 border-transparent text-slate-600 hover:text-slate-900 transition flex items-center gap-2"> <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Analytics </button>
+     </div><!-- Artworks Tab -->
+     <div id="artworks-tab" class="space-y-6">
+      <!-- Add Artwork Form -->
+      <div class="glass-light rounded-2xl p-8">
+       <h3 class="font-heading font-bold text-xl mb-6 flex items-center gap-2"><i data-lucide="plus" class="w-5 h-5 text-pink-600"></i> Add New Artwork</h3>
+       <form id="artwork-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input id="art-title" type="text" placeholder="Artwork Title" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> <input id="art-artist" type="text" placeholder="Artist Name" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> <select id="art-style" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> <option value="">Select Style</option> <option value="abstract">Abstract</option> <option value="landscape">Landscape</option> <option value="portrait">Portrait</option> <option value="digital">Digital</option> </select> <input id="art-year" type="number" placeholder="Year" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500" required> <input id="art-image" type="url" placeholder="Image URL (https://)" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 md:col-span-2" required> <textarea id="art-description" placeholder="Description" class="px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 md:col-span-2" rows="3"></textarea> <button type="submit" class="md:col-span-2 px-6 py-3 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"> <i data-lucide="save" class="w-4 h-4"></i> <span id="form-btn-text">Add Artwork</span> </button>
+       </form>
+      </div><!-- Artworks List -->
+      <div>
+       <h3 class="font-heading font-bold text-xl mb-4">Artwork Submissions</h3>
+       <div id="admin-artworks-list" class="space-y-4">
+        <p class="text-slate-500 py-8 text-center">No artworks yet.</p>
+       </div>
+      </div>
+     </div><!-- Artists Tab -->
+     <div id="artists-tab" class="hidden">
+      <div class="glass-light rounded-2xl p-8">
+       <div id="admin-artists-list" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <p class="text-slate-500 col-span-2 py-8 text-center">No artists yet.</p>
+       </div>
+      </div>
+     </div><!-- Analytics Tab -->
+     <div id="analytics-tab" class="hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+       <div class="glass-light rounded-2xl p-8 text-center">
+        <div class="text-sm text-slate-600 mb-2">
+         Total Artworks
+        </div>
+        <div id="stat-artworks" class="font-heading font-bold text-4xl gradient-text">
+         0
+        </div>
+       </div>
+       <div class="glass-light rounded-2xl p-8 text-center">
+        <div class="text-sm text-slate-600 mb-2">
+         Total Likes
+        </div>
+        <div id="stat-likes" class="font-heading font-bold text-4xl gradient-text">
+         0
+        </div>
+       </div>
+       <div class="glass-light rounded-2xl p-8 text-center">
+        <div class="text-sm text-slate-600 mb-2">
+         Top Artwork
+        </div>
+        <div id="stat-top" class="font-heading font-bold text-2xl text-pink-600 truncate">
+         —
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    lucide.createIcons();
+
+    const defaultConfig = {
+      gallery_title: 'ArtGallery',
+      gallery_subtitle: 'Discover Contemporary Art',
+      admin_password: '',
+      primary_color: '#ec4899',
+      secondary_color: '#8338ec',
+      accent_color: '#3a86ff',
+      font_family: 'Playfair Display',
+      font_size: 16
+    };
+
+    let allArtworks = [];
+    let currentFilter = 'all';
+    let searchQuery = '';
+    let isAdminMode = false;
+    let isDarkTheme = false;
+
+    // Data SDK Handler
+    const dataHandler = {
+      onDataChanged(data) {
+        allArtworks = data.filter(art => art.is_approved);
+        renderGallery();
+        if (isAdminMode) updateAdminDashboard();
+      }
+    };
+
+    // Initialize Data SDK
+    async function initializeApp() {
+      const result = await window.dataSdk.init(dataHandler);
+      if (!result.isOk) {
+        console.error('Failed to initialize data SDK:', result.error);
+      }
+      setupEventListeners();
+    }
+
+    function setupEventListeners() {
+      // Search functionality
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        searchQuery = e.target.value.toLowerCase();
+        renderGallery();
+      });
+
+      // Filter buttons
+      document.querySelectorAll('.filter-tag').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          document.querySelectorAll('.filter-tag').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentFilter = btn.dataset.style;
+          renderGallery();
+        });
+      });
+
+      // Modal controls
+      document.getElementById('close-modal').addEventListener('click', closeDetailModal);
+      document.getElementById('modal-backdrop').addEventListener('click', closeDetailModal);
+      document.getElementById('modal-like-btn').addEventListener('click', handleModalLike);
+
+      // Admin toggle
+      document.getElementById('toggle-admin').addEventListener('click', toggleAdminMode);
+
+      // Admin tabs
+      document.getElementById('tab-artworks').addEventListener('click', () => switchAdminTab('artworks'));
+      document.getElementById('tab-artists').addEventListener('click', () => switchAdminTab('artists'));
+      document.getElementById('tab-analytics').addEventListener('click', () => switchAdminTab('analytics'));
+
+      // Artwork form
+      document.getElementById('artwork-form').addEventListener('submit', handleAddArtwork);
+
+      // Theme toggle
+      document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
+    }
+
+    async function handleAddArtwork(e) {
+      e.preventDefault();
+
+      const artworkData = {
+        title: document.getElementById('art-title').value,
+        artist: document.getElementById('art-artist').value,
+        style: document.getElementById('art-style').value,
+        year: parseInt(document.getElementById('art-year').value),
+        image_url: document.getElementById('art-image').value,
+        description: document.getElementById('art-description').value,
+        likes: 0,
+        is_approved: true
+      };
+
+      const btn = e.target.querySelector('button');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Saving...';
+
+      const result = await window.dataSdk.create(artworkData);
+      
+      if (result.isOk) {
+        e.target.reset();
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Add Artwork';
+        lucide.createIcons();
+      } else {
+        alert('Error adding artwork. Please try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Add Artwork';
+      }
+    }
+
+    function renderGallery() {
+      const gallery = document.getElementById('gallery-container');
+      const emptyState = document.getElementById('empty-state');
+      
+      let filtered = currentFilter === 'all' 
+        ? allArtworks 
+        : allArtworks.filter(art => art.style === currentFilter);
+
+      if (searchQuery) {
+        filtered = filtered.filter(art => 
+          art.title.toLowerCase().includes(searchQuery) ||
+          art.artist.toLowerCase().includes(searchQuery) ||
+          (art.description && art.description.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      if (filtered.length === 0) {
+        gallery.innerHTML = '';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      gallery.innerHTML = filtered.map((art, idx) => `
+        <div class="art-card glass-light cursor-pointer card-entrance" style="animation-delay:${idx * 0.1}s" data-id="${art.__backendId}">
+          <div class="relative h-64 overflow-hidden bg-gradient-to-br from-slate-200 to-slate-300">
+            <img src="${art.image_url}" alt="${art.title}" class="art-card-img w-full h-full object-cover" onerror="this.style.background='linear-gradient(135deg, #ff006e, #8338ec)'; this.alt='Image unavailable'">
+          </div>
+          <div class="p-6">
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex-1">
+                <h3 class="font-heading font-bold text-lg text-slate-900">${art.title}</h3>
+                <p class="text-sm text-slate-600">${art.artist}</p>
+              </div>
+              <span class="text-xs px-3 py-1 rounded-full bg-pink-100 text-pink-700 font-medium">${art.style}</span>
+            </div>
+            <p class="text-sm text-slate-600 mb-4 line-clamp-2">${art.description || 'Contemporary artwork'}</p>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-500">${art.year}</span>
+              <button class="like-btn flex items-center gap-2 px-3 py-1 rounded-lg hover:bg-pink-50 transition" data-id="${art.__backendId}">
+                <i data-lucide="heart" class="w-4 h-4"></i>
+                <span class="text-sm font-medium">${art.likes}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+
+      // Add card click listeners for modal
+      document.querySelectorAll('.art-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (!e.target.closest('.like-btn')) {
+            const id = card.dataset.id;
+            const artwork = allArtworks.find(a => a.__backendId === id);
+            if (artwork) openDetailModal(artwork);
+          }
+        });
+      });
+
+      // Add like button listeners
+      document.querySelectorAll('.like-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const artwork = allArtworks.find(a => a.__backendId === id);
+          
+          if (artwork) {
+            artwork.likes++;
+            btn.classList.add('liked');
+            setTimeout(() => btn.classList.remove('liked'), 300);
+            const result = await window.dataSdk.update(artwork);
+            if (!result.isOk) {
+              artwork.likes--;
+            }
+          }
+        });
+      });
+    }
+
+    function openDetailModal(artwork) {
+      document.getElementById('modal-title').textContent = artwork.title;
+      document.getElementById('modal-artist').textContent = artwork.artist;
+      document.getElementById('modal-style').textContent = artwork.style;
+      document.getElementById('modal-description').textContent = artwork.description || 'A contemporary artwork';
+      document.getElementById('modal-year').textContent = `Year: ${artwork.year}`;
+      document.getElementById('modal-likes').textContent = artwork.likes;
+      
+      const modalImage = document.getElementById('modal-image').querySelector('img');
+      modalImage.src = artwork.image_url;
+      modalImage.alt = artwork.title;
+      
+      document.getElementById('modal-like-btn').dataset.id = artwork.__backendId;
+      document.getElementById('detail-modal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    async function handleModalLike() {
+      const id = document.getElementById('modal-like-btn').dataset.id;
+      const artwork = allArtworks.find(a => a.__backendId === id);
+      
+      if (artwork) {
+        artwork.likes++;
+        document.getElementById('modal-likes').textContent = artwork.likes;
+        const result = await window.dataSdk.update(artwork);
+        if (!result.isOk) {
+          artwork.likes--;
+          document.getElementById('modal-likes').textContent = artwork.likes;
+        }
+      }
+    }
+
+    function toggleAdminMode() {
+        window.location.href = 'admin.html';
+    }
+
+    function switchAdminTab(tab) {
+      document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+        btn.classList.remove('border-pink-600', 'text-pink-600');
+        btn.classList.add('border-transparent', 'text-slate-600');
+      });
+      document.getElementById(`tab-${tab}`).classList.add('border-pink-600', 'text-pink-600');
+
+      document.querySelectorAll('[id$="-tab"]').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`${tab}-tab`).classList.remove('hidden');
+    }
+
+    function updateAdminDashboard() {
+      // Artworks list
+      const artList = document.getElementById('admin-artworks-list');
+      const allSubmitted = allArtworks;
+
+      if (allSubmitted.length === 0) {
+        artList.innerHTML = '<p class="text-slate-500 py-8 text-center">No artworks yet.</p>';
+        return;
+      }
+
+      artList.innerHTML = allSubmitted.map(art => `
+        <div class="glass rounded-xl p-4 flex items-center justify-between">
+          <div class="flex-1">
+            <h4 class="font-semibold text-slate-900">${art.title}</h4>
+            <p class="text-sm text-slate-600">${art.artist} • ${art.style}</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-sm font-medium text-pink-600">${art.likes} likes</span>
+            <button class="p-2 hover:bg-red-100 rounded-lg transition text-red-600" onclick="deleteArtwork('${art.__backendId}')">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      // Artists list
+      const artists = [...new Set(allSubmitted.map(a => a.artist))];
+      const artistsList = document.getElementById('admin-artists-list');
+      
+      if (artists.length === 0) {
+        artistsList.innerHTML = '<p class="text-slate-500 col-span-2 py-8 text-center">No artists yet.</p>';
+      } else {
+        artistsList.innerHTML = artists.map(artist => {
+          const artworks = allSubmitted.filter(a => a.artist === artist);
+          const totalLikes = artworks.reduce((sum, a) => sum + a.likes, 0);
+          return `
+            <div class="glass rounded-xl p-6">
+              <h4 class="font-heading font-bold text-lg text-slate-900">${artist}</h4>
+              <p class="text-sm text-slate-600 mt-1">${artworks.length} artwork${artworks.length !== 1 ? 's' : ''}</p>
+              <p class="text-sm text-pink-600 mt-2 font-medium">${totalLikes} total likes</p>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Analytics
+      const totalLikes = allSubmitted.reduce((sum, a) => sum + a.likes, 0);
+      const topArtwork = allSubmitted.length > 0 
+        ? allSubmitted.reduce((max, a) => a.likes > max.likes ? a : max)
+        : null;
+
+      document.getElementById('stat-artworks').textContent = allSubmitted.length;
+      document.getElementById('stat-likes').textContent = totalLikes;
+      document.getElementById('stat-top').textContent = topArtwork ? topArtwork.title.substring(0, 20) : '—';
+
+      lucide.createIcons();
+    }
+
+    async function deleteArtwork(id) {
+      if (confirm('Delete this artwork?')) {
+        const artwork = allArtworks.find(a => a.__backendId === id);
+        if (artwork) {
+          const result = await window.dataSdk.delete(artwork);
+          if (!result.isOk) {
+            alert('Error deleting artwork');
+          }
+        }
+      }
+    }
+
+    function toggleTheme() {
+      isDarkTheme = !isDarkTheme;
+      if (isDarkTheme) {
+        document.documentElement.classList.add('dark');
+        document.body.classList.remove('bg-gradient-to-br', 'from-white', 'via-slate-50', 'to-blue-50', 'text-slate-900');
+        document.body.classList.add('dark:bg-slate-950', 'dark:text-white');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+
+    async function onConfigChange(config) {
+      document.getElementById('gallery-title').textContent = config.gallery_title || defaultConfig.gallery_title;
+      document.getElementById('gallery-subtitle').textContent = config.gallery_subtitle || defaultConfig.gallery_subtitle;
+      document.getElementById('nav-title').textContent = config.gallery_title || defaultConfig.gallery_title;
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          { get: () => config.primary_color || defaultConfig.primary_color, set: (v) => { config.primary_color = v; window.elementSdk.setConfig({ primary_color: v }); } },
+          { get: () => config.secondary_color || defaultConfig.secondary_color, set: (v) => { config.secondary_color = v; window.elementSdk.setConfig({ secondary_color: v }); } },
+          { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } }
+        ],
+        borderables: [],
+        fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+        fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ['gallery_title', config.gallery_title || defaultConfig.gallery_title],
+        ['gallery_subtitle', config.gallery_subtitle || defaultConfig.gallery_subtitle],
+        ['admin_password', config.admin_password || defaultConfig.admin_password]
+      ]);
+    }
+
+    window.elementSdk.init({ defaultConfig, onConfigChange, mapToCapabilities, mapToEditPanelValues });
+    initializeApp();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f7eed86c0f0d604',t:'MTc3ODE0MzMxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
