@@ -1,12 +1,15 @@
 var API_BASE_URL = "https://69fc3760fce564e2591778d9.mockapi.io/api/v1";
+// API của mockAPI
 
 var ENDPOINTS = {
   Artists: API_BASE_URL + "/Artists",
   ArtWorks: API_BASE_URL + "/ArtWorks",
-};
+};// các giá trị trên mockAPI
 
-function handleResponse(response, errorMessage) {
-  if (!response.ok) {
+function handleResponse(response, errorMessage)
+{ 
+  if (!response.ok) 
+  {
     throw new Error(errorMessage || "Yêu cầu thất bại");
   }
   return response.json();

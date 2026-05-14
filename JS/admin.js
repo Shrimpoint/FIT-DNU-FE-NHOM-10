@@ -72,9 +72,9 @@ function updateAdminDashboard() {
             const totalLikes = artworks.reduce((sum, a) => sum + (a.likes || 0), 0);
             return `
                 <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                    <h4 class="font-heading font-bold text-lg text-slate-900">${artist}</h4>
+                    <h4 class="font-heading font-bold text-lg text-slate-900">${item.ArtistNames}</h4>
                     <p class="text-sm text-slate-600 mt-1">${artworks.length} artwork${artworks.length !== 1 ? 's' : ''}</p>
-                    <p class="text-sm text-pink-600 mt-2 font-medium">${totalLikes} total likes</p>
+                    <p class="text-sm text-pink-600 mt-2 font-medium">${TotalLikes} total likes</p>
                 </div>
             `;
         }).join('');
