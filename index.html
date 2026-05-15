@@ -5,193 +5,76 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Art Gallery Platform</title>
   <script src="/_sdk/element_sdk.js"></script>
-  <script src="/_sdk/data_sdk.js"></script>
+  <script>
+    // --- Data SDK Implementation for MockAPI ---
+    (function() {
+      // !!! QUAN TRỌNG: Thay thế URL này bằng URL MockAPI endpoint của bạn !!!
+      const MOCK_API_ENDPOINT = 'https://69fc3760fce564e2591778d9.mockapi.io/api/v1/ArtWorks';
+      let dataChangeCallback = null;
+
+      async function fetchData() {
+        try {
+          const response = await fetch(MOCK_API_ENDPOINT);
+          if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
+          const data = await response.json();
+          // Ánh xạ 'id' từ API sang '__backendId' mà ứng dụng sử dụng
+          const formattedData = data.map(item => ({ ...item, __backendId: item.id }));
+          if (dataChangeCallback) {
+            dataChangeCallback(formattedData);
+          }
+        } catch (error) {
+          console.error('Data SDK Error (fetchData):', error);
+          // Bạn có thể hiển thị lỗi ra giao diện tại đây nếu cần
+        }
+      }
+
+      window.dataSdk = {
+        init: function(handler) {
+          dataChangeCallback = handler.onDataChanged;
+          fetchData(); // Tải dữ liệu ban đầu
+          return Promise.resolve({ isOk: true });
+        },
+
+        create: async function(artworkData) {
+          try {
+            const { __backendId, ...payload } = artworkData;
+            const response = await fetch(MOCK_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error('Failed to create');
+            await fetchData(); // Tải lại dữ liệu sau khi tạo mới
+            return { isOk: true };
+          } catch (error) { console.error('Data SDK Error (create):', error); return { isOk: false, error }; }
+        },
+
+        update: async function(artworkData) {
+          try {
+            const { __backendId, ...payload } = artworkData;
+            if (!__backendId) throw new Error('Missing ID for update');
+            const response = await fetch(`${MOCK_API_ENDPOINT}/${__backendId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error('Failed to update');
+            await fetchData(); // Tải lại dữ liệu sau khi cập nhật
+            return { isOk: true };
+          } catch (error) { console.error('Data SDK Error (update):', error); return { isOk: false, error }; }
+        },
+
+        delete: async function(artworkData) {
+          try {
+            const { __backendId } = artworkData;
+            if (!__backendId) throw new Error('Missing ID for delete');
+            const response = await fetch(`${MOCK_API_ENDPOINT}/${__backendId}`, { method: 'DELETE' });
+            if (!response.ok) throw new Error('Failed to delete');
+            await fetchData(); // Tải lại dữ liệu sau khi xóa
+            return { isOk: true };
+          } catch (error) { console.error('Data SDK Error (delete):', error); return { isOk: false, error }; }
+        }
+      };
+    })();
+  </script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=DM+Sans:wght@300;400;500;700&amp;display=swap" rel="stylesheet">
-  <style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif}
-.app-root{height:100%;width:100%;display:flex;flex-direction:column;overflow:hidden}
-
-/* Navigation */
-.top-nav{background:#fff;border-bottom:1px solid #e8e8e8;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
-.top-nav.dark{background:#13111a;border-bottom:1px solid #2a2735}
-.nav-brand{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#1a1a1a;display:flex;align-items:center;gap:10px}
-.nav-brand.dark{color:#f0ece4}
-.nav-brand svg{width:28px;height:28px}
-.nav-links{display:flex;gap:6px}
-.nav-links .nav-link-btn{background:none;border:none;padding:8px 16px;font-size:13px;font-weight:500;color:#666;cursor:pointer;border-radius:8px;transition:all .2s}
-.nav-links .nav-link-btn:hover,.nav-links .nav-link-btn.active{background:#f0f0f0;color:#1a1a1a}
-.nav-links .nav-link-btn.dark:hover,.nav-links .nav-link-btn.dark.active{background:#2a2735;color:#f0ece4}
-.nav-link-btn.dark{color:#9992a8}
-.view-toggle{display:flex;background:#f3f3f3;border-radius:10px;padding:3px}
-.view-toggle.dark{background:#1e1b29}
-.view-toggle button{border:none;padding:7px 16px;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .25s;background:transparent;color:#888}
-.view-toggle button.active{background:#1a1a1a;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-.view-toggle.dark button.active{background:#6c5ce7;color:#fff}
-.view-toggle.dark button{color:#7a7390}
-
-/* Public Gallery */
-.gallery-container{flex:1;overflow-y:auto;overflow-x:hidden;background:#fafaf8;padding:0}
-.gallery-hero{text-align:center;padding:48px 24px 32px;background:linear-gradient(180deg,#fff 0%,#fafaf8 100%)}
-.gallery-hero h1{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:#1a1a1a;margin-bottom:8px;letter-spacing:-.5px}
-.gallery-hero p{font-size:15px;color:#888;max-width:500px;margin:0 auto;line-height:1.6}
-
-/* Filters */
-.filter-bar{display:flex;gap:8px;justify-content:center;padding:0 24px 28px;flex-wrap:wrap}
-.filter-chip{border:1.5px solid #e0e0e0;background:#fff;padding:7px 18px;border-radius:50px;font-size:12.5px;font-weight:500;color:#666;cursor:pointer;transition:all .2s}
-.filter-chip:hover{border-color:#1a1a1a;color:#1a1a1a}
-.filter-chip.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
-
-/* Masonry */
-.masonry-grid{column-count:4;column-gap:16px;padding:0 24px 40px}
-@media(max-width:1200px){.masonry-grid{column-count:3}}
-@media(max-width:768px){.masonry-grid{column-count:2}}
-@media(max-width:480px){.masonry-grid{column-count:1}}
-.art-card{break-inside:avoid;margin-bottom:16px;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:transform .3s,box-shadow .3s;cursor:pointer;position:relative}
-.art-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.1)}
-.art-thumb{width:100%;display:block;position:relative}
-.art-thumb-inner{width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.art-info{padding:14px 16px}
-.art-info h3{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:3px}
-.art-info .art-artist{font-size:12px;color:#999;margin-bottom:8px}
-.art-info .art-style-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:50px;background:#f3f0ff;color:#6c5ce7}
-.art-actions{display:flex;align-items:center;justify-content:space-between;padding:0 16px 14px}
-.like-btn{display:flex;align-items:center;gap:5px;border:none;background:none;cursor:pointer;font-size:12.5px;color:#999;transition:all .2s;padding:4px 8px;border-radius:8px}
-.like-btn:hover,.like-btn.liked{color:#e74c3c}
-.like-btn.liked .heart-icon{fill:#e74c3c;stroke:#e74c3c}
-.like-count{font-weight:600}
-
-/* Admin */
-.admin-container{flex:1;overflow-y:auto;overflow-x:hidden;background:#0f0d17;padding:0;display:none}
-.admin-layout{display:flex;height:100%}
-.admin-sidebar{width:220px;background:#13111a;border-right:1px solid #2a2735;padding:20px 0;flex-shrink:0;display:flex;flex-direction:column}
-.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;font-weight:500;color:#7a7390;cursor:pointer;transition:all .2s;border-left:3px solid transparent}
-.sidebar-item:hover,.sidebar-item.active{color:#f0ece4;background:rgba(108,92,231,.08);border-left-color:#6c5ce7}
-.sidebar-item i{width:18px;height:18px}
-.admin-main{flex:1;padding:24px;overflow-y:auto}
-.admin-section-title{font-size:20px;font-weight:700;color:#f0ece4;margin-bottom:20px;font-family:'Playfair Display',serif}
-
-/* Stats Cards */
-.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-@media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}}
-.stat-card{background:#1a1726;border:1px solid #2a2735;border-radius:14px;padding:18px;position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.stat-card:nth-child(1)::before{background:linear-gradient(90deg,#6c5ce7,#a29bfe)}
-.stat-card:nth-child(2)::before{background:linear-gradient(90deg,#00b894,#55efc4)}
-.stat-card:nth-child(3)::before{background:linear-gradient(90deg,#e17055,#fab1a0)}
-.stat-card:nth-child(4)::before{background:linear-gradient(90deg,#fdcb6e,#ffeaa7)}
-.stat-label{font-size:11.5px;color:#7a7390;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.stat-value{font-size:26px;font-weight:700;color:#f0ece4}
-.stat-sub{font-size:11px;color:#55efc4;margin-top:4px}
-
-/* Charts area */
-.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:24px}
-@media(max-width:900px){.charts-row{grid-template-columns:1fr}}
-.chart-card{background:#1a1726;border:1px solid #2a2735;border-radius:14px;padding:20px}
-.chart-card h4{font-size:14px;font-weight:600;color:#f0ece4;margin-bottom:16px}
-.bar-chart{display:flex;align-items:flex-end;gap:8px;height:140px;padding-top:10px}
-.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:6px}
-.bar{border-radius:6px 6px 0 0;width:100%;min-width:20px;transition:height .6s cubic-bezier(.22,1,.36,1)}
-.bar-label{font-size:9.5px;color:#7a7390}
-.donut-wrap{display:flex;align-items:center;justify-content:center;gap:20px}
-.donut-svg{width:120px;height:120px}
-.donut-legend{display:flex;flex-direction:column;gap:8px}
-.legend-item{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#b0a8c4}
-.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-
-/* Admin Table */
-.admin-table-wrap{background:#1a1726;border:1px solid #2a2735;border-radius:14px;overflow:hidden;margin-bottom:24px}
-.admin-table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2a2735}
-.admin-table-header h4{font-size:14px;font-weight:600;color:#f0ece4;margin:0}
-.btn-add-art{background:#6c5ce7;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s}
-.btn-add-art:hover{background:#5a4bd1}
-.admin-table{width:100%;border-collapse:collapse}
-.admin-table th{text-align:left;padding:10px 20px;font-size:11px;font-weight:600;color:#7a7390;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #2a2735}
-.admin-table td{padding:12px 20px;font-size:13px;color:#d4cfdf;border-bottom:1px solid #1f1c2e}
-.admin-table tr:hover td{background:rgba(108,92,231,.04)}
-.status-badge{padding:4px 10px;border-radius:50px;font-size:10.5px;font-weight:600}
-.status-approved{background:rgba(0,184,148,.12);color:#55efc4}
-.status-pending{background:rgba(253,203,110,.12);color:#fdcb6e}
-.status-rejected{background:rgba(225,112,85,.12);color:#fab1a0}
-.action-btn{border:none;background:none;cursor:pointer;padding:4px;border-radius:6px;transition:background .2s;color:#7a7390}
-.action-btn:hover{background:#2a2735;color:#f0ece4}
-.action-btn.delete:hover{color:#e74c3c}
-
-/* Modal */
-.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center}
-.modal-overlay.show{display:flex}
-.modal-box{background:#1a1726;border:1px solid #2a2735;border-radius:16px;padding:28px;max-width:480px;width:90%;max-height:85%;overflow-y:auto}
-.modal-box.light{background:#fff;border-color:#e8e8e8}
-.modal-box h3{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#f0ece4;margin-bottom:20px}
-.modal-box.light h3{color:#1a1a1a}
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:12px;font-weight:600;color:#7a7390;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
-.modal-box.light .form-group label{color:#888}
-.form-group input,.form-group select,.form-group textarea{width:100%;background:#13111a;border:1px solid #2a2735;color:#f0ece4;padding:10px 14px;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
-.modal-box.light .form-group input,.modal-box.light .form-group select,.modal-box.light .form-group textarea{background:#f8f8f8;border-color:#e0e0e0;color:#1a1a1a}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#6c5ce7}
-.form-group textarea{resize:vertical;min-height:70px}
-.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
-.btn-cancel{background:#2a2735;color:#b0a8c4;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer}
-.btn-cancel:hover{background:#33303f}
-.btn-submit{background:#6c5ce7;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
-.btn-submit:hover{background:#5a4bd1}
-.btn-submit:disabled{opacity:.5;cursor:not-allowed}
-
-/* Detail Modal */
-.detail-art-display{width:100%;border-radius:12px;overflow:hidden;margin-bottom:16px}
-.detail-art-display .art-thumb-inner{min-height:200px}
-.detail-info h2{font-family:'Playfair Display',serif;font-size:24px;color:#1a1a1a;margin-bottom:4px}
-.detail-info .detail-artist{color:#888;font-size:14px;margin-bottom:12px}
-.detail-info .detail-desc{color:#666;font-size:13px;line-height:1.7;margin-bottom:16px}
-.detail-like-btn{display:flex;align-items:center;gap:8px;border:1.5px solid #e0e0e0;background:#fff;padding:10px 20px;border-radius:50px;cursor:pointer;font-size:13px;font-weight:600;color:#666;transition:all .2s}
-.detail-like-btn:hover,.detail-like-btn.liked{border-color:#e74c3c;color:#e74c3c}
-
-/* Delete confirm */
-.delete-confirm{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(231,76,60,.08);border-radius:8px}
-.delete-confirm span{font-size:11.5px;color:#e74c3c;font-weight:500}
-.delete-confirm button{border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
-.btn-confirm-del{background:#e74c3c;color:#fff}
-.btn-cancel-del{background:#2a2735;color:#b0a8c4}
-
-/* Toast */
-.toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
-.toast-msg{background:#1a1726;border:1px solid #2a2735;color:#f0ece4;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.3);animation:toastIn .3s ease;display:flex;align-items:center;gap:8px}
-.toast-msg.success{border-left:3px solid #55efc4}
-.toast-msg.error{border-left:3px solid #e74c3c}
-@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-
-/* Empty state */
-.empty-state{text-align:center;padding:60px 20px;color:#999}
-.empty-state i{width:48px;height:48px;margin-bottom:12px;opacity:.4}
-.empty-state h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px}
-.empty-state p{font-size:13px}
-.empty-state.dark h3{color:#7a7390}
-.empty-state.dark p{color:#5a5470}
-
-/* Scrollbar */
-::-webkit-scrollbar{width:6px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
-.admin-container ::-webkit-scrollbar-thumb{background:#2a2735}
-
-/* Loading spinner */
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* Abstract art patterns */
-.gen-art{position:relative;overflow:hidden}
-.gen-art .shape{position:absolute;border-radius:50%}
-
-/* Pending dot */
-.pending-dot{width:8px;height:8px;background:#fdcb6e;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-</style>
-  <style>body { box-sizing: border-box; }</style>
+  <link rel="stylesheet" href="/CSS/Style.css">
   <script src="" type="text/javascript"></script> <!--not gonna-->
  </head>
  <body class="h-full" style="height:100%;width:100%;overflow:hidden">
@@ -359,6 +242,9 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif}
       <div class="form-group">
        <label for="fDesc">Mô tả</label><textarea id="fDesc" placeholder="Mô tả tác phẩm..."></textarea>
       </div>
+      <div class="form-group">
+       <label for="fImageSrc">Nguồn ảnh (URL)</label><input id="fImageSrc" placeholder="https://example.com/image.jpg">
+      </div>
       <div class="modal-actions"><button type="button" class="btn-cancel" id="btnCancelModal">Hủy</button> <button type="submit" class="btn-submit" id="btnSubmitArt">Lưu</button>
       </div>
      </form>
@@ -480,16 +366,23 @@ function renderGallery(){
     const id = art.__backendId;
     let $card = $grid.find(`[data-id="${id}"]`);
     const liked = likedSet.has(id);
-    const svg = generateArtSVG(art.color1||'#6c5ce7',art.color2||'#a29bfe',art.color3||'#dfe6e9',art.pattern||'circles',art.title);
+    
+    let artDisplayHtml;
+    if (art.imageSrc) {
+      artDisplayHtml = `<img src="${esc(art.imageSrc)}" alt="${esc(art.title)}" style="width:100%; display:block; object-fit:cover; aspect-ratio: 3/4;">`;
+    } else {
+      artDisplayHtml = generateArtSVG(art.color1||'#6c5ce7',art.color2||'#a29bfe',art.color3||'#dfe6e9',art.pattern||'circles',art.title);
+    }
 
     if($card.length){
+      if($card.find('.art-thumb-inner').html() !== artDisplayHtml) $card.find('.art-thumb-inner').html(artDisplayHtml);
       $card.find('.like-count').text(art.likes||0);
       $card.find('.like-btn').toggleClass('liked',liked);
       if(liked) $card.find('.heart-icon').attr('fill','#e74c3c').attr('stroke','#e74c3c');
       else $card.find('.heart-icon').removeAttr('fill').attr('stroke','currentColor');
     } else {
       const html = `<div class="art-card" data-id="${id}" data-style="${art.style}">
-        <div class="art-thumb"><div class="art-thumb-inner">${svg}</div></div>
+        <div class="art-thumb"><div class="art-thumb-inner">${artDisplayHtml}</div></div>
         <div class="art-info">
           <h3>${esc(art.title)}</h3>
           <div class="art-artist">${esc(art.artist)}</div>
@@ -605,9 +498,14 @@ function renderPending(){
   $('#pendingEmpty').hide();
 
   pending.forEach(a=>{
-    const svg = generateArtSVG(a.color1||'#6c5ce7',a.color2||'#a29bfe',a.color3||'#dfe6e9',a.pattern||'circles',a.title);
+    let artDisplayHtml;
+    if (a.imageSrc) {
+      artDisplayHtml = `<img src="${esc(a.imageSrc)}" alt="${esc(a.title)}" style="width:100%; height:100%; display:block; object-fit: cover;">`;
+    } else {
+      artDisplayHtml = generateArtSVG(a.color1||'#6c5ce7',a.color2||'#a29bfe',a.color3||'#dfe6e9',a.pattern||'circles',a.title);
+    }
     $list.append(`<div style="background:#1a1726;border:1px solid #2a2735;border-radius:14px;padding:16px;margin-bottom:12px;display:flex;gap:16px;align-items:center">
-      <div style="width:80px;border-radius:10px;overflow:hidden;flex-shrink:0">${svg}</div>
+      <div style="width:80px; height: 60px; border-radius:10px;overflow:hidden;flex-shrink:0; background:#2a2735;">${artDisplayHtml}</div>
       <div style="flex:1">
         <div style="font-weight:600;color:#f0ece4;font-size:14px">${esc(a.title)}</div>
         <div style="color:#7a7390;font-size:12px;margin-top:2px">${esc(a.artist)} · ${esc(a.style)}</div>
@@ -688,8 +586,13 @@ $(document).on('click','.art-card',function(e){
   const id = $(this).data('id');
   const art = allArtworks.find(a=>a.__backendId===id);
   if(!art) return;
-  const svg = generateArtSVG(art.color1||'#6c5ce7',art.color2||'#a29bfe',art.color3||'#dfe6e9',art.pattern||'circles',art.title);
-  $('#detailArtDisplay').html(`<div class="art-thumb-inner" style="min-height:200px">${svg}</div>`);
+  let artDisplayHtml;
+  if (art.imageSrc) {
+    artDisplayHtml = `<img src="${esc(art.imageSrc)}" alt="${esc(art.title)}" style="width:100%; display:block;">`;
+  } else {
+    artDisplayHtml = generateArtSVG(art.color1||'#6c5ce7',art.color2||'#a29bfe',art.color3||'#dfe6e9',art.pattern||'circles',art.title);
+  }
+  $('#detailArtDisplay').html(`<div class="art-thumb-inner" style="min-height:200px; background:#f0f0f0;">${artDisplayHtml}</div>`);
   $('#detailTitle').text(art.title);
   $('#detailArtist').text(art.artist);
   $('#detailStyleTag').html(`<span class="art-style-tag" style="background:${STYLE_COLORS[art.style]||'#6c5ce7'}22;color:${STYLE_COLORS[art.style]||'#6c5ce7'}">${esc(art.style)}</span>`);
@@ -739,6 +642,7 @@ $(document).on('click','.edit-btn',function(){
   $('#fArtist').val(art.artist);
   $('#fStyle').val(art.style);
   $('#fDesc').val(art.description||'');
+  $('#fImageSrc').val(art.imageSrc||'');
   $('#artModal').addClass('show');
 });
 
@@ -752,7 +656,8 @@ $('#artForm').on('submit', async function(e){
     title: $('#fTitle').val().trim(),
     artist: $('#fArtist').val().trim(),
     style: $('#fStyle').val(),
-    description: $('#fDesc').val().trim()
+    description: $('#fDesc').val().trim(),
+    imageSrc: $('#fImageSrc').val().trim()
   };
 
   if(editingArt){
@@ -762,8 +667,18 @@ $('#artForm').on('submit', async function(e){
     else showToast('Lỗi cập nhật','error');
   } else {
     if(allArtworks.length>=999){ showToast('Đã đạt giới hạn 999 tác phẩm','error'); $btn.prop('disabled',false).text('Lưu'); return; }
-    const pal = randomPalette();
-    const res = await window.dataSdk.create({...data, color1:pal[0], color2:pal[1], color3:pal[2], pattern:randomPattern(), likes:0, status:'pending', created_at:new Date().toISOString()});
+    let newArtData = {
+        ...data,
+        likes: 0,
+        status: 'pending',
+        created_at: new Date().toISOString()
+    };
+    // Chỉ tạo art-gen nếu không có link ảnh
+    if (!data.imageSrc) {
+        const pal = randomPalette();
+        newArtData = {...newArtData, color1: pal[0], color2: pal[1], color3: pal[2], pattern: randomPattern()};
+    }
+    const res = await window.dataSdk.create(newArtData);
     $btn.prop('disabled',false).text('Lưu');
     if(res.isOk){ showToast('Đã thêm tác phẩm (chờ duyệt)!'); $('#artModal').removeClass('show'); }
     else showToast('Lỗi thêm tác phẩm','error');
