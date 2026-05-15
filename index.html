@@ -17,8 +17,20 @@
           const response = await fetch(MOCK_API_ENDPOINT);
           if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
           const data = await response.json();
-          // Ánh xạ 'id' từ API sang '__backendId' mà ứng dụng sử dụng
-          const formattedData = data.map(item => ({ ...item, __backendId: item.id }));
+          // Ánh xạ các trường từ MockAPI schema sang cấu trúc dữ liệu nội bộ của ứng dụng
+          const formattedData = data.map(item => ({
+            __backendId: item.id,
+            title: item.ArtWorksName,
+            artist: item.Author,
+            style: item.Categories,
+            description: item.Description,
+            created_at: item.PostingDate,
+            resolution: item.Resolution, // Trường mới
+            likes: item.likes || 0, // Giả định MockAPI có trường likes
+            status: item.status || 'pending', // Giả định MockAPI có trường status
+            imageSrc: item.imageSrc || '', // Giả định MockAPI có trường imageSrc
+            color1: item.color1, color2: item.color2, color3: item.color3, pattern: item.pattern // Giả định MockAPI có các trường này
+          }));
           if (dataChangeCallback) {
             dataChangeCallback(formattedData);
           }
@@ -37,7 +49,20 @@
 
         create: async function(artworkData) {
           try {
-            const { __backendId, ...payload } = artworkData;
+            const { __backendId, ...internalPayload } = artworkData;
+            // Ánh xạ cấu trúc dữ liệu nội bộ sang MockAPI schema
+            const payload = {
+                ArtWorksName: internalPayload.title,
+                Author: internalPayload.artist,
+                Categories: internalPayload.style,
+                Description: internalPayload.description,
+                PostingDate: internalPayload.created_at,
+                Resolution: internalPayload.resolution, // Trường mới
+                likes: internalPayload.likes,
+                status: internalPayload.status,
+                imageSrc: internalPayload.imageSrc,
+                color1: internalPayload.color1, color2: internalPayload.color2, color3: internalPayload.color3, pattern: internalPayload.pattern
+            };
             const response = await fetch(MOCK_API_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!response.ok) throw new Error('Failed to create');
             await fetchData(); // Tải lại dữ liệu sau khi tạo mới
@@ -198,6 +223,7 @@
            <tr>
             <th>Tác phẩm</th>
             <th>Họa sĩ</th>
+            <th>Độ phân giải</th>
             <th>Phong cách</th>
             <th>Lượt thích</th>
             <th>Trạng thái</th>
@@ -245,6 +271,9 @@
       <div class="form-group">
        <label for="fImageSrc">Nguồn ảnh (URL)</label><input id="fImageSrc" placeholder="https://example.com/image.jpg">
       </div>
+      <div class="form-group">
+       <label for="fResolution">Độ phân giải</label><input id="fResolution" placeholder="Ví dụ: 1920x1080">
+      </div>
       <div class="modal-actions"><button type="button" class="btn-cancel" id="btnCancelModal">Hủy</button> <button type="submit" class="btn-submit" id="btnSubmitArt">Lưu</button>
       </div>
      </form>
@@ -256,6 +285,7 @@
      <div class="detail-info">
       <h2 id="detailTitle"></h2>
       <div class="detail-artist" id="detailArtist"></div>
+      <div class="detail-resolution" id="detailResolution" style="font-size:12px;color:#999;margin-bottom:8px;"></div>
       <div id="detailStyleTag" style="margin-bottom:12px"></div>
       <div class="detail-desc" id="detailDesc"></div><button class="detail-like-btn" id="detailLikeBtn"><i data-lucide="heart" style="width:18px;height:18px"></i> <span id="detailLikeCount">0</span> Thích</button>
      </div>
@@ -474,6 +504,7 @@ function renderTable(){
     if(deleteConfirmId===id){
       $tbody.append(`<tr><td colspan="6"><div class="delete-confirm"><span>Xác nhận xóa "${esc(a.title)}"?</span><button class="btn-confirm-del" data-id="${id}">Xóa</button><button class="btn-cancel-del" data-id="${id}">Hủy</button></div></td></tr>`);
     } else {
+      const resolutionDisplay = a.resolution ? `<span style="font-size:11px;color:#7a7390;margin-left:8px;">(${esc(a.resolution)})</span>` : '';
       $tbody.append(`<tr>
         <td style="font-weight:600">${esc(a.title)}</td>
         <td>${esc(a.artist)}</td>
@@ -596,6 +627,7 @@ $(document).on('click','.art-card',function(e){
   $('#detailTitle').text(art.title);
   $('#detailArtist').text(art.artist);
   $('#detailStyleTag').html(`<span class="art-style-tag" style="background:${STYLE_COLORS[art.style]||'#6c5ce7'}22;color:${STYLE_COLORS[art.style]||'#6c5ce7'}">${esc(art.style)}</span>`);
+  $('#detailResolution').text(art.resolution ? `Độ phân giải: ${esc(art.resolution)}` : '');
   $('#detailDesc').text(art.description||'Không có mô tả.');
   $('#detailLikeCount').text(art.likes||0);
   $('#detailLikeBtn').toggleClass('liked',likedSet.has(id)).data('id',id);
@@ -642,6 +674,7 @@ $(document).on('click','.edit-btn',function(){
   $('#fArtist').val(art.artist);
   $('#fStyle').val(art.style);
   $('#fDesc').val(art.description||'');
+  $('#fResolution').val(art.resolution||'');
   $('#fImageSrc').val(art.imageSrc||'');
   $('#artModal').addClass('show');
 });
@@ -657,7 +690,8 @@ $('#artForm').on('submit', async function(e){
     artist: $('#fArtist').val().trim(),
     style: $('#fStyle').val(),
     description: $('#fDesc').val().trim(),
-    imageSrc: $('#fImageSrc').val().trim()
+    imageSrc: $('#fImageSrc').val().trim(),
+    resolution: $('#fResolution').val().trim() // Lấy giá trị độ phân giải
   };
 
   if(editingArt){
