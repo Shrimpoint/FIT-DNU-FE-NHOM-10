@@ -48,8 +48,8 @@ function updateAdminDashboard() {
         artList.innerHTML = allArtworks.map(art => `
             <div class="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow-md transition">
                 <div class="flex-1">
-                    <h4 class="font-semibold text-slate-900">${art.title}</h4>
-                    <p class="text-sm text-slate-600">${art.artist} • ${art.style}</p>
+                    <h4 class="font-semibold text-slate-900">${art.ArtWorksName}</h4>
+                    <p class="text-sm text-slate-600">${art.Author} • ${art.Categories}</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <span class="text-sm font-medium text-pink-600">${art.likes || 0} likes</span>
@@ -62,19 +62,19 @@ function updateAdminDashboard() {
     }
 
     // Artists list
-    const artists = [...new Set(allArtworks.map(a => a.artist))];
+    const artists = [...new Set(allArtworks.map(a => a.Author))];
     const artistsList = document.getElementById('admin-artists-list');
     if (artists.length === 0) {
         artistsList.innerHTML = '<p class="text-slate-500 col-span-2 py-8 text-center">No artists yet.</p>';
     } else {
         artistsList.innerHTML = artists.map(artist => {
-            const artworks = allArtworks.filter(a => a.artist === artist);
+            const artworks = allArtworks.filter(a => a.Author === artist);
             const totalLikes = artworks.reduce((sum, a) => sum + (a.likes || 0), 0);
             return `
                 <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
-                    <h4 class="font-heading font-bold text-lg text-slate-900">${item.ArtistNames}</h4>
+                    <h4 class="font-heading font-bold text-lg text-slate-900">${artist}</h4>
                     <p class="text-sm text-slate-600 mt-1">${artworks.length} artwork${artworks.length !== 1 ? 's' : ''}</p>
-                    <p class="text-sm text-pink-600 mt-2 font-medium">${TotalLikes} total likes</p>
+                    <p class="text-sm text-pink-600 mt-2 font-medium">${totalLikes} total likes</p>
                 </div>
             `;
         }).join('');
@@ -86,7 +86,7 @@ function updateAdminDashboard() {
 
     document.getElementById('stat-artworks').textContent = allArtworks.length;
     document.getElementById('stat-likes').textContent = totalLikes;
-    document.getElementById('stat-top').textContent = topArtwork ? topArtwork.title.substring(0, 20) : '—';
+    document.getElementById('stat-top').textContent = topArtwork ? (topArtwork.ArtWorksName || '').substring(0, 20) : '—';
 
     lucide.createIcons();
 }
@@ -94,11 +94,11 @@ function updateAdminDashboard() {
 async function handleAddArtwork(e) {
     e.preventDefault();
     const artworkData = {
-        title: document.getElementById('art-title').value,
-        artist: document.getElementById('art-artist').value,
-        style: document.getElementById('art-style').value,
-        year: parseInt(document.getElementById('art-year').value),
-        image_url: document.getElementById('art-image').value,
+        ArtWorksName: document.getElementById('art-title').value,
+        Author: document.getElementById('art-artist').value,
+        Categories: document.getElementById('art-style').value,
+        PostingDate: document.getElementById('art-year').value,
+        image_url: document.getElementById('art-image').value, // Giả định trường này tồn tại trong API
         description: document.getElementById('art-description').value,
         likes: 0,
         is_approved: true
