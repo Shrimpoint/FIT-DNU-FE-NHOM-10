@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600&display=swap');
+
+/* Typography & Aesthetic */
+body {
+    font-family: 'Inter', sans-serif;
+}
+h1, h2, h3, .navbar-brand {
+    font-family: 'Playfair Display', serif;
+}
+
+/* Public View - Minimalist */
+.gallery-item {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+}
+.gallery-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+}
+.like-btn {
+    cursor: pointer;
+    color: #ccc;
+    transition: color 0.2s;
+}
+.like-btn.liked {
+    color: #e74c3c;
+}
+
+/* Admin Sidebar */
+.admin-sidebar {
+    min-height: 100vh;
+    border-right: 1px solid #333;
+}
