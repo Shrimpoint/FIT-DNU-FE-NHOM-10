@@ -1,129 +1,874 @@
 <!doctype html>
-<html lang="en" class="h-full">
+<html lang="vi" class="h-full">
  <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ArtGallery - Discover Contemporary Art</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <title>Art Gallery Platform</title>
   <script src="/_sdk/element_sdk.js"></script>
   <script src="/_sdk/data_sdk.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&amp;family=Outfit:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&amp;family=DM+Sans:wght@300;400;500;700&amp;display=swap" rel="stylesheet">
   <style>
-    html, body { height: 100%; margin: 0; }
-    body { font-family: 'Outfit', sans-serif; }
-    .font-heading { font-family: 'Playfair Display', serif; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif}
+.app-root{height:100%;width:100%;display:flex;flex-direction:column;overflow:hidden}
 
-    @keyframes float-slow { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-30px)} }
-    @keyframes pulse-glow { 0%,100%{opacity:0.3} 50%{opacity:0.6} }
-    @keyframes shimmer { 0%{background-position:0% 0%} 100%{background-position:100% 100%} }
-    @keyframes card-entrance { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+/* Navigation */
+.top-nav{background:#fff;border-bottom:1px solid #e8e8e8;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:100}
+.top-nav.dark{background:#13111a;border-bottom:1px solid #2a2735}
+.nav-brand{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#1a1a1a;display:flex;align-items:center;gap:10px}
+.nav-brand.dark{color:#f0ece4}
+.nav-brand svg{width:28px;height:28px}
+.nav-links{display:flex;gap:6px}
+.nav-links .nav-link-btn{background:none;border:none;padding:8px 16px;font-size:13px;font-weight:500;color:#666;cursor:pointer;border-radius:8px;transition:all .2s}
+.nav-links .nav-link-btn:hover,.nav-links .nav-link-btn.active{background:#f0f0f0;color:#1a1a1a}
+.nav-links .nav-link-btn.dark:hover,.nav-links .nav-link-btn.dark.active{background:#2a2735;color:#f0ece4}
+.nav-link-btn.dark{color:#9992a8}
+.view-toggle{display:flex;background:#f3f3f3;border-radius:10px;padding:3px}
+.view-toggle.dark{background:#1e1b29}
+.view-toggle button{border:none;padding:7px 16px;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .25s;background:transparent;color:#888}
+.view-toggle button.active{background:#1a1a1a;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.view-toggle.dark button.active{background:#6c5ce7;color:#fff}
+.view-toggle.dark button{color:#7a7390}
 
-    .float-slow { animation: float-slow 8s ease-in-out infinite; }
-    .pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
-    .card-entrance { animation: card-entrance 0.6s ease-out forwards; }
-    .shimmer-gradient { background: linear-gradient(45deg, #ff006e, #8338ec, #3a86ff, #ff006e); background-size: 200% 200%; animation: shimmer 6s ease infinite; }
+/* Public Gallery */
+.gallery-container{flex:1;overflow-y:auto;overflow-x:hidden;background:#fafaf8;padding:0}
+.gallery-hero{text-align:center;padding:48px 24px 32px;background:linear-gradient(180deg,#fff 0%,#fafaf8 100%)}
+.gallery-hero h1{font-family:'Playfair Display',serif;font-size:42px;font-weight:700;color:#1a1a1a;margin-bottom:8px;letter-spacing:-.5px}
+.gallery-hero p{font-size:15px;color:#888;max-width:500px;margin:0 auto;line-height:1.6}
 
-    .glass { background: rgba(255,255,255,0.08); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.12); }
-    .glass-light { background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.08); box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+/* Filters */
+.filter-bar{display:flex;gap:8px;justify-content:center;padding:0 24px 28px;flex-wrap:wrap}
+.filter-chip{border:1.5px solid #e0e0e0;background:#fff;padding:7px 18px;border-radius:50px;font-size:12.5px;font-weight:500;color:#666;cursor:pointer;transition:all .2s}
+.filter-chip:hover{border-color:#1a1a1a;color:#1a1a1a}
+.filter-chip.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
 
-    .art-card { 
-      transition: all 0.5s cubic-bezier(0.23, 1, 0.320, 1);
-      position: relative;
-      overflow: hidden;
-      border-radius: 16px;
-    }
-    .art-card:hover { transform: translateY(-12px); }
-    .art-card-img { width: 100%; height: 280px; object-fit: cover; transition: transform 0.5s ease; }
-    .art-card:hover .art-card-img { transform: scale(1.05); }
+/* Masonry */
+.masonry-grid{column-count:4;column-gap:16px;padding:0 24px 40px}
+@media(max-width:1200px){.masonry-grid{column-count:3}}
+@media(max-width:768px){.masonry-grid{column-count:2}}
+@media(max-width:480px){.masonry-grid{column-count:1}}
+.art-card{break-inside:avoid;margin-bottom:16px;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:transform .3s,box-shadow .3s;cursor:pointer;position:relative}
+.art-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.1)}
+.art-thumb{width:100%;display:block;position:relative}
+.art-thumb-inner{width:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.art-info{padding:14px 16px}
+.art-info h3{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:3px}
+.art-info .art-artist{font-size:12px;color:#999;margin-bottom:8px}
+.art-info .art-style-tag{display:inline-block;font-size:10.5px;font-weight:600;padding:3px 10px;border-radius:50px;background:#f3f0ff;color:#6c5ce7}
+.art-actions{display:flex;align-items:center;justify-content:space-between;padding:0 16px 14px}
+.like-btn{display:flex;align-items:center;gap:5px;border:none;background:none;cursor:pointer;font-size:12.5px;color:#999;transition:all .2s;padding:4px 8px;border-radius:8px}
+.like-btn:hover,.like-btn.liked{color:#e74c3c}
+.like-btn.liked .heart-icon{fill:#e74c3c;stroke:#e74c3c}
+.like-count{font-weight:600}
 
-    .like-btn { transition: all 0.3s ease; }
-    .like-btn.liked { transform: scale(1.2); }
-    .like-btn:active { transform: scale(0.95); }
+/* Admin */
+.admin-container{flex:1;overflow-y:auto;overflow-x:hidden;background:#0f0d17;padding:0;display:none}
+.admin-layout{display:flex;height:100%}
+.admin-sidebar{width:220px;background:#13111a;border-right:1px solid #2a2735;padding:20px 0;flex-shrink:0;display:flex;flex-direction:column}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 20px;font-size:13px;font-weight:500;color:#7a7390;cursor:pointer;transition:all .2s;border-left:3px solid transparent}
+.sidebar-item:hover,.sidebar-item.active{color:#f0ece4;background:rgba(108,92,231,.08);border-left-color:#6c5ce7}
+.sidebar-item i{width:18px;height:18px}
+.admin-main{flex:1;padding:24px;overflow-y:auto}
+.admin-section-title{font-size:20px;font-weight:700;color:#f0ece4;margin-bottom:20px;font-family:'Playfair Display',serif}
 
-    .filter-tag {
-      cursor: pointer;
-      transition: all 0.3s ease;
-      border: 2px solid transparent;
-    }
-    .filter-tag.active { border-color: currentColor; }
+/* Stats Cards */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:900px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-card{background:#1a1726;border:1px solid #2a2735;border-radius:14px;padding:18px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card:nth-child(1)::before{background:linear-gradient(90deg,#6c5ce7,#a29bfe)}
+.stat-card:nth-child(2)::before{background:linear-gradient(90deg,#00b894,#55efc4)}
+.stat-card:nth-child(3)::before{background:linear-gradient(90deg,#e17055,#fab1a0)}
+.stat-card:nth-child(4)::before{background:linear-gradient(90deg,#fdcb6e,#ffeaa7)}
+.stat-label{font-size:11.5px;color:#7a7390;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-value{font-size:26px;font-weight:700;color:#f0ece4}
+.stat-sub{font-size:11px;color:#55efc4;margin-top:4px}
 
-    .gradient-text { background: linear-gradient(135deg, #ff006e, #8338ec, #3a86ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-  </style>
+/* Charts area */
+.charts-row{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:24px}
+@media(max-width:900px){.charts-row{grid-template-columns:1fr}}
+.chart-card{background:#1a1726;border:1px solid #2a2735;border-radius:14px;padding:20px}
+.chart-card h4{font-size:14px;font-weight:600;color:#f0ece4;margin-bottom:16px}
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:140px;padding-top:10px}
+.bar-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:6px}
+.bar{border-radius:6px 6px 0 0;width:100%;min-width:20px;transition:height .6s cubic-bezier(.22,1,.36,1)}
+.bar-label{font-size:9.5px;color:#7a7390}
+.donut-wrap{display:flex;align-items:center;justify-content:center;gap:20px}
+.donut-svg{width:120px;height:120px}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#b0a8c4}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Admin Table */
+.admin-table-wrap{background:#1a1726;border:1px solid #2a2735;border-radius:14px;overflow:hidden;margin-bottom:24px}
+.admin-table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2a2735}
+.admin-table-header h4{font-size:14px;font-weight:600;color:#f0ece4;margin:0}
+.btn-add-art{background:#6c5ce7;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .2s}
+.btn-add-art:hover{background:#5a4bd1}
+.admin-table{width:100%;border-collapse:collapse}
+.admin-table th{text-align:left;padding:10px 20px;font-size:11px;font-weight:600;color:#7a7390;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #2a2735}
+.admin-table td{padding:12px 20px;font-size:13px;color:#d4cfdf;border-bottom:1px solid #1f1c2e}
+.admin-table tr:hover td{background:rgba(108,92,231,.04)}
+.status-badge{padding:4px 10px;border-radius:50px;font-size:10.5px;font-weight:600}
+.status-approved{background:rgba(0,184,148,.12);color:#55efc4}
+.status-pending{background:rgba(253,203,110,.12);color:#fdcb6e}
+.status-rejected{background:rgba(225,112,85,.12);color:#fab1a0}
+.action-btn{border:none;background:none;cursor:pointer;padding:4px;border-radius:6px;transition:background .2s;color:#7a7390}
+.action-btn:hover{background:#2a2735;color:#f0ece4}
+.action-btn.delete:hover{color:#e74c3c}
+
+/* Modal */
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#1a1726;border:1px solid #2a2735;border-radius:16px;padding:28px;max-width:480px;width:90%;max-height:85%;overflow-y:auto}
+.modal-box.light{background:#fff;border-color:#e8e8e8}
+.modal-box h3{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#f0ece4;margin-bottom:20px}
+.modal-box.light h3{color:#1a1a1a}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#7a7390;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px}
+.modal-box.light .form-group label{color:#888}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:#13111a;border:1px solid #2a2735;color:#f0ece4;padding:10px 14px;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .2s}
+.modal-box.light .form-group input,.modal-box.light .form-group select,.modal-box.light .form-group textarea{background:#f8f8f8;border-color:#e0e0e0;color:#1a1a1a}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#6c5ce7}
+.form-group textarea{resize:vertical;min-height:70px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.btn-cancel{background:#2a2735;color:#b0a8c4;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer}
+.btn-cancel:hover{background:#33303f}
+.btn-submit{background:#6c5ce7;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-submit:hover{background:#5a4bd1}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed}
+
+/* Detail Modal */
+.detail-art-display{width:100%;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.detail-art-display .art-thumb-inner{min-height:200px}
+.detail-info h2{font-family:'Playfair Display',serif;font-size:24px;color:#1a1a1a;margin-bottom:4px}
+.detail-info .detail-artist{color:#888;font-size:14px;margin-bottom:12px}
+.detail-info .detail-desc{color:#666;font-size:13px;line-height:1.7;margin-bottom:16px}
+.detail-like-btn{display:flex;align-items:center;gap:8px;border:1.5px solid #e0e0e0;background:#fff;padding:10px 20px;border-radius:50px;cursor:pointer;font-size:13px;font-weight:600;color:#666;transition:all .2s}
+.detail-like-btn:hover,.detail-like-btn.liked{border-color:#e74c3c;color:#e74c3c}
+
+/* Delete confirm */
+.delete-confirm{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(231,76,60,.08);border-radius:8px}
+.delete-confirm span{font-size:11.5px;color:#e74c3c;font-weight:500}
+.delete-confirm button{border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
+.btn-confirm-del{background:#e74c3c;color:#fff}
+.btn-cancel-del{background:#2a2735;color:#b0a8c4}
+
+/* Toast */
+.toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+.toast-msg{background:#1a1726;border:1px solid #2a2735;color:#f0ece4;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.3);animation:toastIn .3s ease;display:flex;align-items:center;gap:8px}
+.toast-msg.success{border-left:3px solid #55efc4}
+.toast-msg.error{border-left:3px solid #e74c3c}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Empty state */
+.empty-state{text-align:center;padding:60px 20px;color:#999}
+.empty-state i{width:48px;height:48px;margin-bottom:12px;opacity:.4}
+.empty-state h3{font-family:'Playfair Display',serif;font-size:20px;margin-bottom:6px}
+.empty-state p{font-size:13px}
+.empty-state.dark h3{color:#7a7390}
+.empty-state.dark p{color:#5a5470}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+.admin-container ::-webkit-scrollbar-thumb{background:#2a2735}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Abstract art patterns */
+.gen-art{position:relative;overflow:hidden}
+.gen-art .shape{position:absolute;border-radius:50%}
+
+/* Pending dot */
+.pending-dot{width:8px;height:8px;background:#fdcb6e;border-radius:50%;display:inline-block;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
   <style>body { box-sizing: border-box; }</style>
+  <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
  </head>
- <body class="h-full bg-gradient-to-br from-white via-slate-50 to-blue-50 text-slate-900 overflow-auto">
-  <div id="app" class="w-full min-h-full flex flex-col">
-   <!-- Background Elements -->
-   <div class="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-    <div class="absolute top-0 right-0 w-96 h-96 bg-pink-300/10 rounded-full blur-3xl pulse-glow"></div>
-    <div class="absolute bottom-20 left-0 w-80 h-80 bg-blue-300/10 rounded-full blur-3xl pulse-glow" style="animation-delay:2s"></div>
-    <div class="absolute top-1/2 left-1/2 w-72 h-72 bg-purple-300/10 rounded-full blur-3xl pulse-glow" style="animation-delay:1s"></div>
-   </div><!-- Navigation -->
-   <nav class="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-slate-200/50">
-    <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl shimmer-gradient p-1 flex items-center justify-center">
-       <i data-lucide="palette" class="w-5 h-5 text-white"></i>
-      </div><span id="nav-title" class="font-heading font-bold text-2xl gradient-text">ArtGallery</span>
+ <body class="h-full" style="height:100%;width:100%;overflow:hidden">
+  <div class="app-root" id="appRoot"><!-- Top Nav -->
+   <nav class="top-nav" id="topNav">
+    <div class="nav-brand" id="navBrand">
+     <svg viewbox="0 0 32 32" fill="none">
+      <rect x="2" y="2" width="28" height="28" rx="6" stroke="currentColor" stroke-width="2.5" /><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2" /><path d="M4 24l7-8 5 4 6-7 6 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+     </svg><span id="brandName">Galerie</span>
+    </div>
+    <div class="nav-links" id="navLinks"><button class="nav-link-btn active" data-filter="all">Tất cả</button> <button class="nav-link-btn" data-filter="Trừu tượng">Trừu tượng</button> <button class="nav-link-btn" data-filter="Ấn tượng">Ấn tượng</button> <button class="nav-link-btn" data-filter="Tối giản">Tối giản</button> <button class="nav-link-btn" data-filter="Siêu thực">Siêu thực</button>
+    </div>
+    <div class="view-toggle" id="viewToggle"><button class="active" data-view="public"><i data-lucide="image" style="width:14px;height:14px"></i></button> <button data-view="admin"><i data-lucide="settings" style="width:14px;height:14px"></i></button>
+    </div>
+   </nav><!-- PUBLIC VIEW -->
+   <div class="gallery-container" id="galleryView">
+    <div class="gallery-hero">
+     <h1 id="heroTitle">Galerie</h1>
+     <p id="heroTagline">Khám phá những tác phẩm nghệ thuật đương đại từ các họa sĩ tài năng</p>
+    </div>
+    <div class="filter-bar" id="filterBar"><button class="filter-chip active" data-filter="all">Tất cả</button> <button class="filter-chip" data-filter="Trừu tượng">Trừu tượng</button> <button class="filter-chip" data-filter="Ấn tượng">Ấn tượng</button> <button class="filter-chip" data-filter="Tối giản">Tối giản</button> <button class="filter-chip" data-filter="Siêu thực">Siêu thực</button>
+    </div>
+    <div class="masonry-grid" id="masonryGrid"></div>
+    <div class="empty-state" id="publicEmpty" style="display:none"><i data-lucide="image"></i>
+     <h3>Chưa có tác phẩm nào</h3>
+     <p>Hãy chuyển sang Admin để thêm tác phẩm đầu tiên</p>
+    </div>
+   </div><!-- ADMIN VIEW -->
+   <div class="admin-container" id="adminView">
+    <div class="admin-layout">
+     <aside class="admin-sidebar">
+      <div style="padding:0 20px 20px;border-bottom:1px solid #2a2735;margin-bottom:12px">
+       <div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:700;color:#f0ece4">
+        Admin Panel
+       </div>
+       <div style="font-size:11px;color:#7a7390;margin-top:2px">
+        Quản lý tác phẩm
+       </div>
+      </div>
+      <div class="sidebar-item active" data-section="dashboard">
+       <i data-lucide="bar-chart-3"></i>Thống kê
+      </div>
+      <div class="sidebar-item" data-section="artworks">
+       <i data-lucide="palette"></i>Tác phẩm
+      </div>
+      <div class="sidebar-item" data-section="pending">
+       <i data-lucide="clock"></i>Chờ duyệt <span class="pending-dot" id="pendingDot" style="margin-left:auto;display:none"></span>
+      </div>
+     </aside>
+     <main class="admin-main" id="adminMain"><!-- Dashboard Section -->
+      <div id="sectionDashboard">
+       <h2 class="admin-section-title">Tổng quan</h2>
+       <div class="stats-row">
+        <div class="stat-card">
+         <div class="stat-label">
+          Tổng tác phẩm
+         </div>
+         <div class="stat-value" id="statTotal">
+          0
+         </div>
+         <div class="stat-sub">
+          ↑ Gallery
+         </div>
+        </div>
+        <div class="stat-card">
+         <div class="stat-label">
+          Đã duyệt
+         </div>
+         <div class="stat-value" id="statApproved">
+          0
+         </div>
+         <div class="stat-sub">
+          ✓ Published
+         </div>
+        </div>
+        <div class="stat-card">
+         <div class="stat-label">
+          Chờ duyệt
+         </div>
+         <div class="stat-value" id="statPending">
+          0
+         </div>
+         <div class="stat-sub">
+          ⏳ Pending
+         </div>
+        </div>
+        <div class="stat-card">
+         <div class="stat-label">
+          Tổng lượt thích
+         </div>
+         <div class="stat-value" id="statLikes">
+          0
+         </div>
+         <div class="stat-sub">
+          ❤️ Hearts
+         </div>
+        </div>
+       </div>
+       <div class="charts-row">
+        <div class="chart-card">
+         <h4>Lượt thích theo phong cách</h4>
+         <div class="bar-chart" id="barChart"></div>
+        </div>
+        <div class="chart-card">
+         <h4>Phân bố phong cách</h4>
+         <div class="donut-wrap">
+          <svg class="donut-svg" viewbox="0 0 120 120" id="donutChart"></svg>
+          <div class="donut-legend" id="donutLegend"></div>
+         </div>
+        </div>
+       </div>
+      </div><!-- Artworks Section -->
+      <div id="sectionArtworks" style="display:none">
+       <div class="admin-table-wrap">
+        <div class="admin-table-header">
+         <h4>Danh sách tác phẩm</h4><button class="btn-add-art" id="btnAddArt"><i data-lucide="plus" style="width:14px;height:14px"></i> Thêm tác phẩm</button>
+        </div>
+        <div style="overflow-x:auto">
+         <table class="admin-table">
+          <thead>
+           <tr>
+            <th>Tác phẩm</th>
+            <th>Họa sĩ</th>
+            <th>Phong cách</th>
+            <th>Lượt thích</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+           </tr>
+          </thead>
+          <tbody id="artTableBody"></tbody>
+         </table>
+        </div>
+       </div>
+       <div class="empty-state dark" id="adminEmpty" style="display:none">
+        <i data-lucide="palette"></i>
+        <h3>Chưa có tác phẩm</h3>
+        <p>Nhấn "Thêm tác phẩm" để bắt đầu</p>
+       </div>
+      </div><!-- Pending Section -->
+      <div id="sectionPending" style="display:none">
+       <h2 class="admin-section-title">Tác phẩm chờ duyệt</h2>
+       <div id="pendingList"></div>
+       <div class="empty-state dark" id="pendingEmpty" style="display:none">
+        <i data-lucide="check-circle"></i>
+        <h3>Không có bài chờ duyệt</h3>
+        <p>Tất cả tác phẩm đã được xử lý</p>
+       </div>
+      </div>
+     </main>
+    </div>
+   </div><!-- Art Form Modal -->
+   <div class="modal-overlay" id="artModal">
+    <div class="modal-box">
+     <h3 id="modalTitle">Thêm tác phẩm mới</h3>
+     <form id="artForm">
+      <div class="form-group">
+       <label for="fTitle">Tên tác phẩm</label><input id="fTitle" required placeholder="Nhập tên tác phẩm">
+      </div>
+      <div class="form-group">
+       <label for="fArtist">Họa sĩ</label><input id="fArtist" required placeholder="Tên họa sĩ">
+      </div>
+      <div class="form-group">
+       <label for="fStyle">Phong cách</label> <select id="fStyle"><option>Trừu tượng</option><option>Ấn tượng</option><option>Tối giản</option><option>Siêu thực</option></select>
+      </div>
+      <div class="form-group">
+       <label for="fDesc">Mô tả</label><textarea id="fDesc" placeholder="Mô tả tác phẩm..."></textarea>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn-cancel" id="btnCancelModal">Hủy</button> <button type="submit" class="btn-submit" id="btnSubmitArt">Lưu</button>
+      </div>
+     </form>
+    </div>
+   </div><!-- Detail Modal -->
+   <div class="modal-overlay" id="detailModal">
+    <div class="modal-box light" style="max-width:520px">
+     <div class="detail-art-display" id="detailArtDisplay"></div>
+     <div class="detail-info">
+      <h2 id="detailTitle"></h2>
+      <div class="detail-artist" id="detailArtist"></div>
+      <div id="detailStyleTag" style="margin-bottom:12px"></div>
+      <div class="detail-desc" id="detailDesc"></div><button class="detail-like-btn" id="detailLikeBtn"><i data-lucide="heart" style="width:18px;height:18px"></i> <span id="detailLikeCount">0</span> Thích</button>
      </div>
-     <div class="flex items-center gap-3">
-      <div class="relative hidden md:block"><input id="search-input" type="text" placeholder="Search artworks..." class="pl-10 pr-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm w-64"> <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-      </div><a href="admin.html" id="toggle-admin" class="px-4 py-2 text-sm font-medium rounded-lg glass hover:bg-slate-100/50 transition flex items-center gap-2"> <i data-lucide="lock" class="w-4 h-4"></i> <span id="admin-label">Admin</span> </a> <button id="toggle-theme" class="p-2 rounded-lg hover:bg-slate-100 transition"> <i data-lucide="sun" class="w-5 h-5"></i> </button>
+     <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-cancel" id="btnCloseDetail" style="background:#f0f0f0;color:#666">Đóng</button>
      </div>
     </div>
-   </nav><!-- Public Gallery View -->
-   <div id="public-view" class="flex-1">
-    <!-- Hero -->
-    <section class="max-w-7xl mx-auto px-4 md:px-8 py-16 md:py-24">
-     <div class="text-center mb-16">
-      <h1 id="gallery-title" class="font-heading font-black text-5xl md:text-6xl mb-4 gradient-text">ArtGallery</h1>
-      <p id="gallery-subtitle" class="text-xl text-slate-600 max-w-2xl mx-auto">Discover contemporary art from talented artists worldwide. Curated collections of inspiring work.</p>
-     </div><!-- Filter Section -->
-     <div class="mb-12">
-      <div class="glass-light rounded-2xl p-6 md:p-8">
-       <h2 class="font-heading font-bold text-xl mb-4 flex items-center gap-2"><i data-lucide="sliders" class="w-5 h-5 text-pink-600"></i> Filter by Style</h2>
-       <div id="filter-container" class="flex flex-wrap gap-3">
-        <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium active hover:bg-slate-200 transition" data-style="all"> All Styles </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="abstract"> Abstract </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="landscape"> Landscape </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="portrait"> Portrait </button> <button class="filter-tag px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-medium hover:bg-slate-200 transition" data-style="digital"> Digital </button>
-       </div>
-      </div>
-     </div>
-    </section><!-- Masonry Gallery -->
-    <section class="max-w-7xl mx-auto px-4 md:px-8 pb-20">
-     <div id="gallery-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 auto-rows-max">
-      <!-- Gallery cards populated by JS -->
-     </div>
-     <div id="empty-state" class="text-center py-16">
-      <i data-lucide="image" class="w-16 h-16 mx-auto text-slate-300 mb-4"></i>
-      <p class="text-slate-500 text-lg">No artworks yet. Check back soon!</p>
-     </div>
-    </section>
-   </div><!-- Artwork Detail Modal -->
-   <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" id="modal-backdrop"></div>
-    <div class="relative glass-light rounded-2xl max-w-2xl w-full max-h-90vh overflow-y-auto">
-     <div class="sticky top-0 flex items-center justify-between p-6 border-b border-slate-200/30 bg-white/80 backdrop-blur-sm">
-      <h3 id="modal-title" class="font-heading font-bold text-2xl">Artwork Title</h3><button id="close-modal" class="p-2 hover:bg-slate-100 rounded-lg transition"><i data-lucide="x" class="w-5 h-5"></i></button>
-     </div>
-     <div class="p-6 space-y-6">
-      <div id="modal-image" class="w-full h-96 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl overflow-hidden flex items-center justify-center"><img src="" alt="" class="w-full h-full object-cover" onerror="this.style.background='linear-gradient(135deg, #ff006e, #8338ec)'">
-      </div>
-      <div class="space-y-3">
-       <div class="flex items-center justify-between">
-        <div>
-         <p id="modal-artist" class="text-sm text-slate-600 mb-1">Artist Name</p>
-         <p id="modal-style" class="inline-block text-xs px-3 py-1 rounded-full bg-pink-100 text-pink-700 font-medium">Style</p>
-        </div>
-        <div class="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50"><i data-lucide="heart" class="w-5 h-5 text-pink-600"></i> <span id="modal-likes" class="font-semibold text-lg">0</span>
-        </div>
-       </div>
-       <p id="modal-description" class="text-slate-700 leading-relaxed">Artwork description...</p>
-       <div class="flex items-center justify-between pt-4 border-t border-slate-100"><span class="text-sm text-slate-600" id="modal-year">Year: 2024</span> <button id="modal-like-btn" class="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all flex items-center gap-2"> <i data-lucide="heart" class="w-4 h-4"></i> Like This Artwork </button>
-       </div>
-      </div>
-     </div>
-    </div>
+   </div><!-- Toast -->
+   <div class="toast-container" id="toastContainer"></div>
   </div>
-  <script src="./JS/main.js"></script>
- </body>
+  <script>
+// State
+let allArtworks = [];
+let currentFilter = 'all';
+let currentView = 'public';
+let currentSection = 'dashboard';
+let editingArt = null;
+let deleteConfirmId = null;
+let likedSet = new Set(JSON.parse(localStorage.getItem('liked_arts') || '[]'));
+
+const STYLES = ['Trừu tượng','Ấn tượng','Tối giản','Siêu thực'];
+const STYLE_COLORS = {'Trừu tượng':'#6c5ce7','Ấn tượng':'#00b894','Tối giản':'#636e72','Siêu thực':'#e17055'};
+const PALETTES = [
+  ['#6c5ce7','#a29bfe','#dfe6e9'],['#00b894','#55efc4','#ffeaa7'],
+  ['#e17055','#fab1a0','#ffeaa7'],['#0984e3','#74b9ff','#dfe6e9'],
+  ['#fdcb6e','#e17055','#6c5ce7'],['#ff7675','#fd79a8','#a29bfe'],
+  ['#00cec9','#81ecec','#dfe6e9'],['#e84393','#fd79a8','#ffeaa7']
+];
+const PATTERNS = ['circles','waves','blocks','diagonal','dots'];
+
+function randomPalette(){ return PALETTES[Math.floor(Math.random()*PALETTES.length)]; }
+function randomPattern(){ return PATTERNS[Math.floor(Math.random()*PATTERNS.length)]; }
+
+// Generate abstract art SVG
+function generateArtSVG(c1,c2,c3,pattern,seed){
+  const h = 160 + (seed ? (seed.charCodeAt(0)%8)*20 : Math.random()*80);
+  let shapes = '';
+  const s = seed || '';
+  const r = (i) => ((s.charCodeAt(i%s.length)||42)*17+i*31)%100;
+
+  if(pattern==='circles'){
+    for(let i=0;i<6;i++){
+      const cx=r(i)*2.5, cy=r(i+3)*h/100, rad=20+r(i+7)*.6;
+      const col=[c1,c2,c3][i%3];
+      shapes+=`<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${col}" opacity="${.3+r(i+1)/200}"/>`;
+    }
+  } else if(pattern==='waves'){
+    for(let i=0;i<4;i++){
+      const y1=r(i)*h/100, y2=r(i+2)*h/100;
+      const col=[c1,c2,c3][i%3];
+      shapes+=`<path d="M0 ${y1} Q62 ${y2} 125 ${y1} Q187 ${r(i+4)*h/100} 250 ${y1}" fill="none" stroke="${col}" stroke-width="${4+r(i+1)/15}" opacity="${.4+r(i+3)/250}"/>`;
+    }
+  } else if(pattern==='blocks'){
+    for(let i=0;i<8;i++){
+      const x=r(i)*2.2, y=r(i+2)*h/100, w=20+r(i+5)*.4, hh=20+r(i+7)*.4;
+      const col=[c1,c2,c3][i%3];
+      shapes+=`<rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="4" fill="${col}" opacity="${.3+r(i+1)/200}"/>`;
+    }
+  } else if(pattern==='diagonal'){
+    for(let i=0;i<5;i++){
+      const x1=r(i)*2.5, y1=r(i+1)*h/100, x2=r(i+3)*2.5, y2=r(i+5)*h/100;
+      const col=[c1,c2,c3][i%3];
+      shapes+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="${6+r(i+2)/12}" stroke-linecap="round" opacity="${.4+r(i)/250}"/>`;
+    }
+  } else {
+    for(let i=0;i<12;i++){
+      const cx=r(i)*2.5, cy=r(i+2)*h/100, rad=3+r(i+4)/20;
+      const col=[c1,c2,c3][i%3];
+      shapes+=`<circle cx="${cx}" cy="${cy}" r="${rad}" fill="${col}" opacity="${.5+r(i)/250}"/>`;
+    }
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 ${h}" style="width:100%;display:block;background:${c1}22"><rect width="250" height="${h}" fill="${c3}" opacity=".15"/>${shapes}</svg>`;
+}
+
+// Toast
+function showToast(msg, type='success'){
+  const t = document.createElement('div');
+  t.className = `toast-msg ${type}`;
+  t.innerHTML = `<i data-lucide="${type==='success'?'check-circle':'alert-circle'}" style="width:16px;height:16px"></i>${msg}`;
+  $('#toastContainer').append(t);
+  lucide.createIcons();
+  setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),300); },3000);
+}
+
+// Render public gallery
+function renderGallery(){
+  const approved = allArtworks.filter(a=>a.status==='approved');
+  const filtered = currentFilter==='all' ? approved : approved.filter(a=>a.style===currentFilter);
+  const $grid = $('#masonryGrid');
+
+  if(filtered.length===0){
+    $grid.empty();
+    $('#publicEmpty').show();
+    return;
+  }
+  $('#publicEmpty').hide();
+
+  const existingIds = new Set();
+  $grid.children().each(function(){ existingIds.add($(this).data('id')); });
+  const newIds = new Set(filtered.map(a=>a.__backendId));
+
+  // Remove gone
+  $grid.children().each(function(){
+    if(!newIds.has($(this).data('id'))) $(this).remove();
+  });
+
+  filtered.forEach(art=>{
+    const id = art.__backendId;
+    let $card = $grid.find(`[data-id="${id}"]`);
+    const liked = likedSet.has(id);
+    const svg = generateArtSVG(art.color1||'#6c5ce7',art.color2||'#a29bfe',art.color3||'#dfe6e9',art.pattern||'circles',art.title);
+
+    if($card.length){
+      $card.find('.like-count').text(art.likes||0);
+      $card.find('.like-btn').toggleClass('liked',liked);
+      if(liked) $card.find('.heart-icon').attr('fill','#e74c3c').attr('stroke','#e74c3c');
+      else $card.find('.heart-icon').removeAttr('fill').attr('stroke','currentColor');
+    } else {
+      const html = `<div class="art-card" data-id="${id}" data-style="${art.style}">
+        <div class="art-thumb"><div class="art-thumb-inner">${svg}</div></div>
+        <div class="art-info">
+          <h3>${esc(art.title)}</h3>
+          <div class="art-artist">${esc(art.artist)}</div>
+          <span class="art-style-tag" style="background:${STYLE_COLORS[art.style]||'#6c5ce7'}22;color:${STYLE_COLORS[art.style]||'#6c5ce7'}">${esc(art.style)}</span>
+        </div>
+        <div class="art-actions">
+          <button class="like-btn ${liked?'liked':''}" data-id="${id}">
+            <svg class="heart-icon" width="16" height="16" viewBox="0 0 24 24" ${liked?'fill="#e74c3c" stroke="#e74c3c"':'fill="none" stroke="currentColor"'} stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <span class="like-count">${art.likes||0}</span>
+          </button>
+        </div>
+      </div>`;
+      $grid.append(html);
+    }
+  });
+}
+
+function esc(s){ return $('<span>').text(s||'').html(); }
+
+// Admin render
+function renderAdmin(){
+  const total = allArtworks.length;
+  const approved = allArtworks.filter(a=>a.status==='approved');
+  const pending = allArtworks.filter(a=>a.status==='pending');
+  const totalLikes = allArtworks.reduce((s,a)=>s+(a.likes||0),0);
+
+  $('#statTotal').text(total);
+  $('#statApproved').text(approved.length);
+  $('#statPending').text(pending.length);
+  $('#statLikes').text(totalLikes);
+  $('#pendingDot').toggle(pending.length>0);
+
+  renderBarChart();
+  renderDonut();
+  renderTable();
+  renderPending();
+}
+
+function renderBarChart(){
+  const $bar = $('#barChart').empty();
+  const styleLikes = {};
+  STYLES.forEach(s=>styleLikes[s]=0);
+  allArtworks.forEach(a=>{ if(styleLikes[a.style]!==undefined) styleLikes[a.style]+=(a.likes||0); });
+  const max = Math.max(...Object.values(styleLikes),1);
+  STYLES.forEach(s=>{
+    const pct = (styleLikes[s]/max)*100;
+    $bar.append(`<div class="bar-col"><div class="bar" style="height:${Math.max(pct,4)}%;background:${STYLE_COLORS[s]}"></div><div class="bar-label">${s.substring(0,4)}</div></div>`);
+  });
+}
+
+function renderDonut(){
+  const counts = {};
+  STYLES.forEach(s=>counts[s]=0);
+  allArtworks.forEach(a=>{ if(counts[a.style]!==undefined) counts[a.style]++; });
+  const total = Math.max(allArtworks.length,1);
+  let offset = 0;
+  const $svg = $('#donutChart').empty();
+  const $legend = $('#donutLegend').empty();
+  const r=50, cx=60, cy=60, circ=2*Math.PI*r;
+
+  STYLES.forEach(s=>{
+    const pct = counts[s]/total;
+    const dash = pct*circ;
+    const gap = circ-dash;
+    $svg.append(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${STYLE_COLORS[s]}" stroke-width="16" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`);
+    offset+=dash;
+    $legend.append(`<div class="legend-item"><div class="legend-dot" style="background:${STYLE_COLORS[s]}"></div>${s}: ${counts[s]}</div>`);
+  });
+  if(allArtworks.length===0){
+    $svg.append(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2a2735" stroke-width="16"/>`);
+  }
+}
+
+function renderTable(){
+  const $tbody = $('#artTableBody').empty();
+  const arts = currentSection==='artworks' ? allArtworks : allArtworks.filter(a=>a.status==='pending');
+  
+  if(arts.length===0){
+    if(currentSection==='artworks') $('#adminEmpty').show();
+    return;
+  }
+  $('#adminEmpty').hide();
+
+  arts.forEach(a=>{
+    const id = a.__backendId;
+    const statusCls = a.status==='approved'?'status-approved':a.status==='pending'?'status-pending':'status-rejected';
+    const statusTxt = a.status==='approved'?'Đã duyệt':a.status==='pending'?'Chờ duyệt':'Từ chối';
+
+    if(deleteConfirmId===id){
+      $tbody.append(`<tr><td colspan="6"><div class="delete-confirm"><span>Xác nhận xóa "${esc(a.title)}"?</span><button class="btn-confirm-del" data-id="${id}">Xóa</button><button class="btn-cancel-del" data-id="${id}">Hủy</button></div></td></tr>`);
+    } else {
+      $tbody.append(`<tr>
+        <td style="font-weight:600">${esc(a.title)}</td>
+        <td>${esc(a.artist)}</td>
+        <td><span class="art-style-tag" style="background:${STYLE_COLORS[a.style]||'#6c5ce7'}22;color:${STYLE_COLORS[a.style]||'#6c5ce7'}">${esc(a.style)}</span></td>
+        <td>${a.likes||0}</td>
+        <td><span class="status-badge ${statusCls}">${statusTxt}</span></td>
+        <td>
+          <button class="action-btn edit-btn" data-id="${id}" title="Sửa"><i data-lucide="edit-2" style="width:15px;height:15px"></i></button>
+          <button class="action-btn delete action-del" data-id="${id}" title="Xóa"><i data-lucide="trash-2" style="width:15px;height:15px"></i></button>
+          ${a.status==='pending'?`<button class="action-btn approve-btn" data-id="${id}" title="Duyệt" style="color:#55efc4"><i data-lucide="check" style="width:15px;height:15px"></i></button>`:''}
+        </td>
+      </tr>`);
+    }
+  });
+  lucide.createIcons();
+}
+
+function renderPending(){
+  const pending = allArtworks.filter(a=>a.status==='pending');
+  const $list = $('#pendingList').empty();
+  if(pending.length===0){ $('#pendingEmpty').show(); return; }
+  $('#pendingEmpty').hide();
+
+  pending.forEach(a=>{
+    const svg = generateArtSVG(a.color1||'#6c5ce7',a.color2||'#a29bfe',a.color3||'#dfe6e9',a.pattern||'circles',a.title);
+    $list.append(`<div style="background:#1a1726;border:1px solid #2a2735;border-radius:14px;padding:16px;margin-bottom:12px;display:flex;gap:16px;align-items:center">
+      <div style="width:80px;border-radius:10px;overflow:hidden;flex-shrink:0">${svg}</div>
+      <div style="flex:1">
+        <div style="font-weight:600;color:#f0ece4;font-size:14px">${esc(a.title)}</div>
+        <div style="color:#7a7390;font-size:12px;margin-top:2px">${esc(a.artist)} · ${esc(a.style)}</div>
+      </div>
+      <button class="btn-submit approve-btn" data-id="${a.__backendId}" style="padding:7px 14px;font-size:12px"><i data-lucide="check" style="width:14px;height:14px"></i> Duyệt</button>
+      <button class="btn-cancel reject-btn" data-id="${a.__backendId}" style="padding:7px 14px;font-size:12px">Từ chối</button>
+    </div>`);
+  });
+  lucide.createIcons();
+}
+
+// View switching
+$(document).on('click','#viewToggle button',function(){
+  const view = $(this).data('view');
+  currentView = view;
+  $('#viewToggle button').removeClass('active');
+  $(this).addClass('active');
+  
+  if(view==='public'){
+    $('#galleryView').show(); $('#adminView').hide();
+    $('#topNav').removeClass('dark'); $('#navBrand').removeClass('dark');
+    $('#viewToggle').removeClass('dark');
+    $('.nav-link-btn').removeClass('dark').show();
+    renderGallery();
+  } else {
+    $('#galleryView').hide(); $('#adminView').show();
+    $('#topNav').addClass('dark'); $('#navBrand').addClass('dark');
+    $('#viewToggle').addClass('dark');
+    $('.nav-link-btn').addClass('dark').hide();
+    renderAdmin();
+  }
+});
+
+// Sidebar navigation
+$(document).on('click','.sidebar-item',function(){
+  currentSection = $(this).data('section');
+  $('.sidebar-item').removeClass('active');
+  $(this).addClass('active');
+  $('#sectionDashboard,#sectionArtworks,#sectionPending').hide();
+  if(currentSection==='dashboard') $('#sectionDashboard').show();
+  else if(currentSection==='artworks'){ $('#sectionArtworks').show(); renderTable(); }
+  else if(currentSection==='pending'){ $('#sectionPending').show(); renderPending(); }
+});
+
+// Filter
+$(document).on('click','.filter-chip,.nav-link-btn',function(){
+  const f = $(this).data('filter');
+  if(!f) return;
+  currentFilter = f;
+  $('.filter-chip,.nav-link-btn').removeClass('active');
+  $(`.filter-chip[data-filter="${f}"],.nav-link-btn[data-filter="${f}"]`).addClass('active');
+  renderGallery();
+});
+
+// Like
+$(document).on('click','.like-btn',async function(e){
+  e.stopPropagation();
+  const id = $(this).data('id');
+  const art = allArtworks.find(a=>a.__backendId===id);
+  if(!art) return;
+  const $btn = $(this);
+  $btn.prop('disabled',true);
+
+  const wasLiked = likedSet.has(id);
+  const newLikes = wasLiked ? Math.max((art.likes||0)-1,0) : (art.likes||0)+1;
+  
+  if(wasLiked) likedSet.delete(id); else likedSet.add(id);
+  localStorage.setItem('liked_arts', JSON.stringify([...likedSet]));
+
+  const res = await window.dataSdk.update({...art, likes: newLikes});
+  $btn.prop('disabled',false);
+  if(!res.isOk){ showToast('Lỗi khi thích','error'); if(wasLiked) likedSet.add(id); else likedSet.delete(id); localStorage.setItem('liked_arts',JSON.stringify([...likedSet])); }
+});
+
+// Detail modal
+$(document).on('click','.art-card',function(e){
+  if($(e.target).closest('.like-btn').length) return;
+  const id = $(this).data('id');
+  const art = allArtworks.find(a=>a.__backendId===id);
+  if(!art) return;
+  const svg = generateArtSVG(art.color1||'#6c5ce7',art.color2||'#a29bfe',art.color3||'#dfe6e9',art.pattern||'circles',art.title);
+  $('#detailArtDisplay').html(`<div class="art-thumb-inner" style="min-height:200px">${svg}</div>`);
+  $('#detailTitle').text(art.title);
+  $('#detailArtist').text(art.artist);
+  $('#detailStyleTag').html(`<span class="art-style-tag" style="background:${STYLE_COLORS[art.style]||'#6c5ce7'}22;color:${STYLE_COLORS[art.style]||'#6c5ce7'}">${esc(art.style)}</span>`);
+  $('#detailDesc').text(art.description||'Không có mô tả.');
+  $('#detailLikeCount').text(art.likes||0);
+  $('#detailLikeBtn').toggleClass('liked',likedSet.has(id)).data('id',id);
+  $('#detailModal').addClass('show');
+});
+
+$(document).on('click','#detailLikeBtn',async function(){
+  const id = $(this).data('id');
+  const art = allArtworks.find(a=>a.__backendId===id);
+  if(!art) return;
+  $(this).prop('disabled',true);
+  const wasLiked = likedSet.has(id);
+  const newLikes = wasLiked ? Math.max((art.likes||0)-1,0) : (art.likes||0)+1;
+  if(wasLiked) likedSet.delete(id); else likedSet.add(id);
+  localStorage.setItem('liked_arts',JSON.stringify([...likedSet]));
+  const res = await window.dataSdk.update({...art, likes: newLikes});
+  $(this).prop('disabled',false);
+  if(res.isOk){ $('#detailLikeCount').text(newLikes); $(this).toggleClass('liked',!wasLiked); }
+  else { showToast('Lỗi','error'); if(wasLiked) likedSet.add(id); else likedSet.delete(id); localStorage.setItem('liked_arts',JSON.stringify([...likedSet])); }
+});
+
+$('#btnCloseDetail').on('click',()=>$('#detailModal').removeClass('show'));
+$('#detailModal').on('click',function(e){ if(e.target===this) $(this).removeClass('show'); });
+
+// Add/Edit modal
+$('#btnAddArt').on('click',()=>{
+  editingArt = null;
+  $('#modalTitle').text('Thêm tác phẩm mới');
+  $('#artForm')[0].reset();
+  $('#artModal').addClass('show');
+});
+
+$('#btnCancelModal').on('click',()=>$('#artModal').removeClass('show'));
+$('#artModal').on('click',function(e){ if(e.target===this) $(this).removeClass('show'); });
+
+// Edit
+$(document).on('click','.edit-btn',function(){
+  const id = $(this).data('id');
+  const art = allArtworks.find(a=>a.__backendId===id);
+  if(!art) return;
+  editingArt = art;
+  $('#modalTitle').text('Chỉnh sửa tác phẩm');
+  $('#fTitle').val(art.title);
+  $('#fArtist').val(art.artist);
+  $('#fStyle').val(art.style);
+  $('#fDesc').val(art.description||'');
+  $('#artModal').addClass('show');
+});
+
+// Submit form
+$('#artForm').on('submit', async function(e){
+  e.preventDefault();
+  const $btn = $('#btnSubmitArt');
+  $btn.prop('disabled',true).html('<span class="spinner"></span>');
+  
+  const data = {
+    title: $('#fTitle').val().trim(),
+    artist: $('#fArtist').val().trim(),
+    style: $('#fStyle').val(),
+    description: $('#fDesc').val().trim()
+  };
+
+  if(editingArt){
+    const res = await window.dataSdk.update({...editingArt, ...data});
+    $btn.prop('disabled',false).text('Lưu');
+    if(res.isOk){ showToast('Đã cập nhật!'); $('#artModal').removeClass('show'); }
+    else showToast('Lỗi cập nhật','error');
+  } else {
+    if(allArtworks.length>=999){ showToast('Đã đạt giới hạn 999 tác phẩm','error'); $btn.prop('disabled',false).text('Lưu'); return; }
+    const pal = randomPalette();
+    const res = await window.dataSdk.create({...data, color1:pal[0], color2:pal[1], color3:pal[2], pattern:randomPattern(), likes:0, status:'pending', created_at:new Date().toISOString()});
+    $btn.prop('disabled',false).text('Lưu');
+    if(res.isOk){ showToast('Đã thêm tác phẩm (chờ duyệt)!'); $('#artModal').removeClass('show'); }
+    else showToast('Lỗi thêm tác phẩm','error');
+  }
+});
+
+// Delete
+$(document).on('click','.action-del',function(){ deleteConfirmId = $(this).data('id'); renderTable(); });
+$(document).on('click','.btn-cancel-del',function(){ deleteConfirmId = null; renderTable(); });
+$(document).on('click','.btn-confirm-del',async function(){
+  const id = $(this).data('id');
+  const art = allArtworks.find(a=>a.__backendId===id);
+  if(!art) return;
+  $(this).prop('disabled',true).html('<span class="spinner"></span>');
+  const res = await window.dataSdk.delete(art);
+  if(res.isOk){ showToast('Đã xóa!'); deleteConfirmId=null; }
+  else showToast('Lỗi xóa','error');
+});
+
+// Approve / Reject
+$(document).on('click','.approve-btn',async function(){
+  const id = $(this).data('id');
+  const art = allArtworks.find(a=>a.__backendId===id);
+  if(!art) return;
+  $(this).prop('disabled',true).html('<span class="spinner"></span>');
+  const res = await window.dataSdk.update({...art, status:'approved'});
+  if(res.isOk) showToast('Đã duyệt tác phẩm!');
+  else showToast('Lỗi duyệt','error');
+});
+
+$(document).on('click','.reject-btn',async function(){
+  const id = $(this).data('id');
+  const art = allArtworks.find(a=>a.__backendId===id);
+  if(!art) return;
+  $(this).prop('disabled',true).html('<span class="spinner"></span>');
+  const res = await window.dataSdk.update({...art, status:'rejected'});
+  if(res.isOk) showToast('Đã từ chối!');
+  else showToast('Lỗi','error');
+});
+
+// Element SDK
+const defaultConfig = {
+  gallery_name: 'Galerie',
+  gallery_tagline: 'Khám phá những tác phẩm nghệ thuật đương đại từ các họa sĩ tài năng',
+  background_color: '#fafaf8',
+  surface_color: '#ffffff',
+  text_color: '#1a1a1a',
+  primary_action: '#6c5ce7',
+  secondary_action: '#666666',
+  font_family: 'Playfair Display',
+  font_size: 16
+};
+
+function applyConfig(cfg){
+  const c = {...defaultConfig, ...cfg};
+  const font = c.font_family || defaultConfig.font_family;
+  const base = c.font_size || defaultConfig.font_size;
+
+  $('#brandName').text(c.gallery_name);
+  $('#heroTitle').text(c.gallery_name).css({'fontFamily':`${font}, serif`, fontSize: base*2.6+'px'});
+  $('#heroTagline').text(c.gallery_tagline).css({fontSize: base*.94+'px'});
+  
+  $('.gallery-container').css('background', c.background_color);
+  $('.gallery-hero').css('background', `linear-gradient(180deg, ${c.surface_color} 0%, ${c.background_color} 100%)`);
+  document.querySelectorAll('.art-card').forEach(el=>el.style.background=c.surface_color);
+  document.querySelectorAll('.art-info h3').forEach(el=>{el.style.color=c.text_color; el.style.fontFamily=`${font}, serif`; el.style.fontSize=base*.94+'px';});
+  document.querySelectorAll('.art-artist').forEach(el=>el.style.fontSize=base*.75+'px');
+  document.querySelectorAll('.filter-chip.active').forEach(el=>{el.style.background=c.primary_action; el.style.borderColor=c.primary_action;});
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (cfg) => applyConfig(cfg),
+  mapToCapabilities: (cfg) => ({
+    recolorables: [
+      {get:()=>cfg.background_color||defaultConfig.background_color, set:v=>{cfg.background_color=v; window.elementSdk.setConfig({background_color:v})}},
+      {get:()=>cfg.surface_color||defaultConfig.surface_color, set:v=>{cfg.surface_color=v; window.elementSdk.setConfig({surface_color:v})}},
+      {get:()=>cfg.text_color||defaultConfig.text_color, set:v=>{cfg.text_color=v; window.elementSdk.setConfig({text_color:v})}},
+      {get:()=>cfg.primary_action||defaultConfig.primary_action, set:v=>{cfg.primary_action=v; window.elementSdk.setConfig({primary_action:v})}},
+      {get:()=>cfg.secondary_action||defaultConfig.secondary_action, set:v=>{cfg.secondary_action=v; window.elementSdk.setConfig({secondary_action:v})}}
+    ],
+    borderables: [],
+    fontEditable: {get:()=>cfg.font_family||defaultConfig.font_family, set:v=>{cfg.font_family=v; window.elementSdk.setConfig({font_family:v})}},
+    fontSizeable: {get:()=>cfg.font_size||defaultConfig.font_size, set:v=>{cfg.font_size=v; window.elementSdk.setConfig({font_size:v})}}
+  }),
+  mapToEditPanelValues: (cfg) => new Map([
+    ['gallery_name', cfg.gallery_name||defaultConfig.gallery_name],
+    ['gallery_tagline', cfg.gallery_tagline||defaultConfig.gallery_tagline]
+  ])
+});
+
+// Data SDK
+const dataHandler = {
+  onDataChanged(data){
+    allArtworks = data;
+    if(currentView==='public') renderGallery();
+    renderAdmin();
+  }
+};
+
+(async()=>{
+  const res = await window.dataSdk.init(dataHandler);
+  if(!res.isOk) console.error('Data SDK init failed');
+  lucide.createIcons();
+})();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9fc0a39d0169e34d',t:'MTc3ODgzMjM0Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
