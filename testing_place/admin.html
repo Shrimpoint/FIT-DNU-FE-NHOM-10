@@ -33,6 +33,15 @@
 
     <hr>
 
+    <div class="mb-4">
+        <button type="button" class="btn btn-success" id="importAllBtn">
+            📥 Nhập tất cả dữ liệu từ MockAPI
+        </button>
+        <div id="importStatus" class="mt-2"></div>
+    </div>
+
+    <hr>
+
     <div id="list"></div>
 
 </div>
@@ -40,5 +49,49 @@
 <script src="./js/api.js"></script>
 <script src="./js/admin.js"></script>
 
-</body>
+<script>
+// Import tất cả dữ liệu từ MockAPI
+document.getElementById('importAllBtn').addEventListener('click', async function() {
+    const statusDiv = document.getElementById('importStatus');
+    const btn = this;
+    
+    try {
+        btn.disabled = true;
+        statusDiv.innerHTML = '<span class="badge bg-info">Đang tải dữ liệu...</span>';
+        
+        // Lấy dữ liệu từ MockAPI
+        const response = await fetch('https://69fc3760fce564e2591778d9.mockapi.io/api/v1/ArtWorks');
+        
+        if (!response.ok) {
+            throw new Error('Lỗi khi tải dữ liệu: ' + response.statusText);
+        }
+        
+        const artworks = await response.json();
+        
+        if (!artworks || artworks.length === 0) {
+            statusDiv.innerHTML = '<span class="badge bg-warning">Không có dữ liệu trong MockAPI</span>';
+            btn.disabled = false;
+            return;
+        }
+        
+        // Lưu vào localStorage
+        localStorage.setItem('mockApiArtworks', JSON.stringify(artworks));
+        localStorage.setItem('lastImportTime', new Date().toLocaleString('vi-VN'));
+        
+        statusDiv.innerHTML = `
+            <span class="badge bg-success">✓ Thành công! Đã nhập ${artworks.length} tác phẩm</span><br>
+            <small class="text-muted">Lần cập nhật cuối: ${new Date().toLocaleString('vi-VN')}</small><br>
+            <a href="../index.html" class="btn btn-primary btn-sm mt-2">👁️ Xem trang gallery</a>
+        `;
+        
+        console.log('Imported artworks:', artworks);
+        
+    } catch (error) {
+        statusDiv.innerHTML = `<span class="badge bg-danger">✗ Lỗi: ${error.message}</span>`;
+        console.error('Import error:', error);
+    } finally {
+        btn.disabled = false;
+    }
+});
+</script>
 </html>

@@ -2,6 +2,7 @@
     (function() {
       // !!! QUAN TRỌNG: Thay thế URL này bằng URL MockAPI endpoint của bạn !!!
       const MOCK_API_ENDPOINT = 'https://69fc3760fce564e2591778d9.mockapi.io/api/v1/ArtWorks';
+      const MOCK_API_ARTISTS_ENDPOINT = 'https://69fc3760fce564e2591778d9.mockapi.io/api/v1/Artists';
       let dataChangeCallback = null;
 
       async function fetchData() {
@@ -16,14 +17,15 @@
             __backendId: item.id,
             title: item.ArtWorksName,
             artist: item.Author,
+            authorImage: item.AuthorImage || item.AuthorAvatar || item.authorImage || item.authorAvatar || '',
             style: item.Categories,
             description: item.Description,
             created_at: item.PostingDate,
-            resolution: item.Resolution, // Trường mới
-            likes: item.likes || 0, // Giả định MockAPI có trường likes
-            status: item.status || 'pending', // Giả định MockAPI có trường status
-            imageSrc: item.imageSrc || '', // Giả định MockAPI có trường imageSrc
-            color1: item.color1, color2: item.color2, color3: item.color3, pattern: item.pattern // Giả định MockAPI có các trường này
+            resolution: item.Resolution,
+            likes: parseInt(item.likes, 10) || 0,
+            status: item.status || 'approved',
+            imageSrc: item.imageSrc || '',
+            color1: item.color1, color2: item.color2, color3: item.color3, pattern: item.pattern
           }));
           if (dataChangeCallback) {
             dataChangeCallback(formattedData);
@@ -38,6 +40,7 @@
         init: function(handler) {
           dataChangeCallback = handler.onDataChanged;
           fetchData(); // Tải dữ liệu ban đầu
+          this.fetchArtists(); // Tải danh sách tác giả
           return Promise.resolve({ isOk: true });
         },
 
@@ -48,10 +51,11 @@
             const payload = {
                 ArtWorksName: internalPayload.title,
                 Author: internalPayload.artist,
+                AuthorImage: internalPayload.authorImage || '',
                 Categories: internalPayload.style,
                 Description: internalPayload.description,
                 PostingDate: internalPayload.created_at,
-                Resolution: internalPayload.resolution, // Trường mới
+                Resolution: internalPayload.resolution,
                 likes: internalPayload.likes,
                 status: internalPayload.status,
                 imageSrc: internalPayload.imageSrc,
@@ -75,6 +79,7 @@
             const payload = {
                 ArtWorksName: internalPayload.title,
                 Author: internalPayload.artist,
+                AuthorImage: internalPayload.authorImage || '',
                 Categories: internalPayload.style,
                 Description: internalPayload.description,
                 PostingDate: internalPayload.created_at,
@@ -98,16 +103,75 @@
             await fetchData(); // Tải lại dữ liệu sau khi xóa
             return { isOk: true };
           } catch (error) { console.error('Data SDK Error (delete):', error.statusText || error); return { isOk: false, error }; }
+        },
+
+        deleteAll: async function(artworks) {
+          try {
+            for (const art of artworks) {
+              if (art.__backendId) {
+                await $.ajax({ url: `${MOCK_API_ENDPOINT}/${art.__backendId}`, method: 'DELETE' });
+              }
+            }
+            await fetchData();
+            return { isOk: true };
+          } catch (error) { console.error('Data SDK Error (deleteAll):', error.statusText || error); return { isOk: false, error }; }
+        },
+
+        fetchArtists: async function() {
+          try {
+            const data = await $.ajax({ url: MOCK_API_ARTISTS_ENDPOINT, method: 'GET', dataType: 'json' });
+            allArtists = data;
+            if(currentSection === 'artists') renderArtistsTable();
+          } catch (error) { console.error('Data SDK Error (fetchArtists):', error); }
+        },
+        
+        createArtist: async function(artistData) {
+          try {
+            await $.ajax({ url: MOCK_API_ARTISTS_ENDPOINT, method: 'POST', contentType: 'application/json', data: JSON.stringify(artistData) });
+            await this.fetchArtists();
+            return { isOk: true };
+          } catch (error) { return { isOk: false, error }; }
+        },
+        
+        updateArtist: async function(id, artistData) {
+          try {
+            await $.ajax({ url: `${MOCK_API_ARTISTS_ENDPOINT}/${id}`, method: 'PUT', contentType: 'application/json', data: JSON.stringify(artistData) });
+            await this.fetchArtists();
+            return { isOk: true };
+          } catch (error) { return { isOk: false, error }; }
+        },
+        
+        deleteArtist: async function(id) {
+          try {
+            await $.ajax({ url: `${MOCK_API_ARTISTS_ENDPOINT}/${id}`, method: 'DELETE' });
+            await this.fetchArtists();
+            return { isOk: true };
+          } catch (error) { return { isOk: false, error }; }
+        },
+
+        deleteAllArtists: async function(artists) {
+          try {
+            for (const artist of artists) {
+              if (artist.id) {
+                await $.ajax({ url: `${MOCK_API_ARTISTS_ENDPOINT}/${artist.id}`, method: 'DELETE' });
+              }
+            }
+            await this.fetchArtists();
+            return { isOk: true };
+          } catch (error) { console.error('Data SDK Error (deleteAllArtists):', error); return { isOk: false, error }; }
         }
       };
     })();
 // State
 let allArtworks = [];
+let allArtists = [];
 let currentFilter = 'all';
 let currentView = 'public';
 let currentSection = 'dashboard';
 let editingArt = null;
+let editingArtist = null;
 let deleteConfirmId = null;
+let deleteArtistConfirmId = null;
 let likedSet = new Set(JSON.parse(localStorage.getItem('liked_arts') || '[]'));
 
 const STYLES = ['Trừu tượng','Ấn tượng','Tối giản','Siêu thực'];
@@ -211,8 +275,15 @@ function renderGallery(){
       artDisplayHtml = generateArtSVG(art.color1||'#6c5ce7',art.color2||'#a29bfe',art.color3||'#dfe6e9',art.pattern||'circles',art.title);
     }
 
+    const authorAvatarHtml = art.authorImage ?
+      `<img class="artist-avatar" src="${esc(art.authorImage)}" alt="Ảnh ${esc(art.artist)}">` :
+      `<span class="artist-avatar avatar-fallback">${esc((art.artist||'')[0]||'A')}</span>`;
+
     if($card.length){
       if($card.find('.art-thumb-inner').html() !== artDisplayHtml) $card.find('.art-thumb-inner').html(artDisplayHtml);
+      $card.find('.art-artist span').text(esc(art.artist));
+      if($card.find('.artist-avatar').length) $card.find('.artist-avatar').replaceWith(authorAvatarHtml);
+      else $card.find('.art-artist').prepend(authorAvatarHtml);
       $card.find('.like-count').text(art.likes||0);
       $card.find('.like-btn').toggleClass('liked',liked);
       if(liked) $card.find('.heart-icon').attr('fill','#e74c3c').attr('stroke','#e74c3c');
@@ -222,7 +293,10 @@ function renderGallery(){
         <div class="art-thumb"><div class="art-thumb-inner">${artDisplayHtml}</div></div>
         <div class="art-info">
           <h3>${esc(art.title)}</h3>
-          <div class="art-artist">${esc(art.artist)}</div>
+          <div class="art-artist">
+            ${authorAvatarHtml}
+            <span>${esc(art.artist)}</span>
+          </div>
           <span class="art-style-tag" style="background:${STYLE_COLORS[art.style]||'#6c5ce7'}22;color:${STYLE_COLORS[art.style]||'#6c5ce7'}">${esc(art.style)}</span>
         </div>
         <div class="art-actions">
@@ -244,7 +318,7 @@ function renderAdmin(){
   const total = allArtworks.length;
   const approved = allArtworks.filter(a=>a.status==='approved');
   const pending = allArtworks.filter(a=>a.status==='pending');
-  const totalLikes = allArtworks.reduce((s,a)=>s+(a.likes||0),0);
+  const totalLikes = allArtworks.reduce((s,a)=>s+parseInt(a.likes||0, 10),0);
 
   $('#statTotal').text(total);
   $('#statApproved').text(approved.length);
@@ -262,7 +336,7 @@ function renderBarChart(){
   const $bar = $('#barChart').empty();
   const styleLikes = {};
   STYLES.forEach(s=>styleLikes[s]=0);
-  allArtworks.forEach(a=>{ if(styleLikes[a.style]!==undefined) styleLikes[a.style]+=(a.likes||0); });
+  allArtworks.forEach(a=>{ if(styleLikes[a.style]!==undefined) styleLikes[a.style]+=parseInt(a.likes||0, 10); });
   const max = Math.max(...Object.values(styleLikes),1);
   STYLES.forEach(s=>{
     const pct = (styleLikes[s]/max)*100;
@@ -308,8 +382,7 @@ function renderTable(){
     const statusCls = a.status==='approved'?'status-approved':a.status==='pending'?'status-pending':'status-rejected';
     const statusTxt = a.status==='approved'?'Đã duyệt':a.status==='pending'?'Chờ duyệt':'Từ chối';
 
-    if(deleteConfirmId===id){
-      $tbody.append(`<tr><td colspan="6"><div class="delete-confirm"><span>Xác nhận xóa "${esc(a.title)}"?</span><button class="btn-confirm-del" data-id="${id}">Xóa</button><button class="btn-cancel-del" data-id="${id}">Hủy</button></div></td></tr>`);
+    if(deleteConfirmId == id){
       $tbody.append(`<tr><td colspan="7"><div class="delete-confirm"><span>Xác nhận xóa "${esc(a.title)}"?</span><button class="btn-confirm-del" data-id="${id}">Xóa</button><button class="btn-cancel-del" data-id="${id}">Hủy</button></div></td></tr>`);
     } else {
       const resolutionDisplay = a.resolution ? `<span style="font-size:11px;color:#7a7390;margin-left:8px;">(${esc(a.resolution)})</span>` : '';
@@ -357,12 +430,13 @@ function renderPending(){
   lucide.createIcons();
 }
 
-// View switching
-$(document).on('click','#viewToggle button',function(){
-  const view = $(this).data('view');
+// Admin login
+const ADMIN_PASSWORD = "admin"; // Mật khẩu mặc định là "admin"
+
+function switchToView(view) {
   currentView = view;
   $('#viewToggle button').removeClass('active');
-  $(this).addClass('active');
+  $(`#viewToggle button[data-view="${view}"]`).addClass('active');
   
   if(view==='public'){
     $('#galleryView').show(); $('#adminView').hide();
@@ -377,6 +451,42 @@ $(document).on('click','#viewToggle button',function(){
     $('.nav-link-btn').addClass('dark').hide();
     renderAdmin();
   }
+}
+
+// View switching
+$(document).on('click','#viewToggle button',function(){
+  const view = $(this).data('view');
+  if (view === currentView) return;
+  
+  if (view === 'admin') {
+    $('#loginModal').addClass('show');
+    $('#adminPassword').val('').focus();
+    $('#loginError').hide();
+  } else {
+    switchToView('public');
+  }
+});
+
+$(document).on('click', '#btnCancelLogin', function() {
+  $('#loginModal').removeClass('show');
+});
+
+$(document).on('click', '#btnSubmitLogin', function() {
+  const pwd = $('#adminPassword').val();
+  if (pwd === ADMIN_PASSWORD) {
+    $('#loginModal').removeClass('show');
+    switchToView('admin');
+    showToast('Đăng nhập thành công!');
+  } else {
+    $('#loginError').show();
+  }
+});
+
+$(document).on('click', '#loginModal', function(e){ if(e.target===this) $(this).removeClass('show'); });
+$(document).on('keypress', '#adminPassword', function(e) {
+  if (e.which == 13) {
+    $('#btnSubmitLogin').click();
+  }
 });
 
 // Sidebar navigation
@@ -384,11 +494,41 @@ $(document).on('click','.sidebar-item',function(){
   currentSection = $(this).data('section');
   $('.sidebar-item').removeClass('active');
   $(this).addClass('active');
-  $('#sectionDashboard,#sectionArtworks,#sectionPending').hide();
+  $('#sectionDashboard,#sectionArtworks,#sectionPending,#sectionArtists').hide();
   if(currentSection==='dashboard') $('#sectionDashboard').show();
   else if(currentSection==='artworks'){ $('#sectionArtworks').show(); renderTable(); }
   else if(currentSection==='pending'){ $('#sectionPending').show(); renderPending(); }
+  else if(currentSection==='artists'){ $('#sectionArtists').show(); renderArtistsTable(); }
 });
+
+// Render Artists Table
+function renderArtistsTable() {
+  const $tbody = $('#artistTableBody').empty();
+  if(allArtists.length===0){
+    $('#artistEmpty').show();
+    return;
+  }
+  $('#artistEmpty').hide();
+
+  allArtists.forEach(a => {
+    const id = a.id;
+    if(deleteArtistConfirmId == id){
+      $tbody.append(`<tr><td colspan="4"><div class="delete-confirm"><span>Xác nhận xóa tác giả "${esc(a.name)}"?</span><button class="btn-confirm-del-artist" data-id="${id}">Xóa</button><button class="btn-cancel-del-artist" data-id="${id}">Hủy</button></div></td></tr>`);
+    } else {
+      const avatarHtml = a.avatar ? `<img src="${esc(a.avatar)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;">` : `<div style="width:40px;height:40px;border-radius:50%;background:#e0e0e0;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#666;">${esc((a.name||'A')[0])}</div>`;
+      $tbody.append(`<tr>
+        <td>${avatarHtml}</td>
+        <td style="font-weight:600">${esc(a.name)}</td>
+        <td style="max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.bio)}</td>
+        <td>
+          <button class="action-btn edit-btn-artist" data-id="${id}" title="Sửa"><i data-lucide="edit-2" style="width:15px;height:15px"></i></button>
+          <button class="action-btn delete action-del-artist" data-id="${id}" title="Xóa"><i data-lucide="trash-2" style="width:15px;height:15px"></i></button>
+        </td>
+      </tr>`);
+    }
+  });
+  lucide.createIcons();
+}
 
 // Filter
 $(document).on('click','.filter-chip,.nav-link-btn',function(){
@@ -404,7 +544,7 @@ $(document).on('click','.filter-chip,.nav-link-btn',function(){
 $(document).on('click','.like-btn',async function(e){
   e.stopPropagation();
   const id = $(this).data('id');
-  const art = allArtworks.find(a=>a.__backendId===id);
+  const art = allArtworks.find(a=>a.__backendId == id);
   if(!art) return;
   const $btn = $(this);
   $btn.prop('disabled',true);
@@ -424,7 +564,7 @@ $(document).on('click','.like-btn',async function(e){
 $(document).on('click','.art-card',function(e){
   if($(e.target).closest('.like-btn').length) return;
   const id = $(this).data('id');
-  const art = allArtworks.find(a=>a.__backendId===id);
+  const art = allArtworks.find(a=>a.__backendId == id);
   if(!art) return;
   let artDisplayHtml;
   if (art.imageSrc) {
@@ -434,7 +574,8 @@ $(document).on('click','.art-card',function(e){
   }
   $('#detailArtDisplay').html(`<div class="art-thumb-inner" style="min-height:200px; background:#f0f0f0;">${artDisplayHtml}</div>`);
   $('#detailTitle').text(art.title);
-  $('#detailArtist').text(art.artist);
+  const detailAvatar = art.authorImage ? `<img class="detail-author-avatar" src="${esc(art.authorImage)}" alt="Ảnh ${esc(art.artist)}">` : `<span class="detail-author-avatar avatar-fallback">${esc((art.artist||'')[0]||'A')}</span>`;
+  $('#detailAuthorRow').html(`${detailAvatar}<div><div class="detail-artist">${esc(art.artist)}</div><div class="detail-author-label">Tác giả</div></div>`);
   $('#detailStyleTag').html(`<span class="art-style-tag" style="background:${STYLE_COLORS[art.style]||'#6c5ce7'}22;color:${STYLE_COLORS[art.style]||'#6c5ce7'}">${esc(art.style)}</span>`);
   $('#detailResolution').text(art.resolution ? `Độ phân giải: ${esc(art.resolution)}` : '');
   $('#detailDesc').text(art.description||'Không có mô tả.');
@@ -445,7 +586,7 @@ $(document).on('click','.art-card',function(e){
 
 $(document).on('click','#detailLikeBtn',async function(){
   const id = $(this).data('id');
-  const art = allArtworks.find(a=>a.__backendId===id);
+  const art = allArtworks.find(a=>a.__backendId == id);
   if(!art) return;
   $(this).prop('disabled',true);
   const wasLiked = likedSet.has(id);
@@ -458,22 +599,154 @@ $(document).on('click','#detailLikeBtn',async function(){
   else { showToast('Lỗi','error'); if(wasLiked) likedSet.add(id); else likedSet.delete(id); localStorage.setItem('liked_arts',JSON.stringify([...likedSet])); }
 });
 
-$('#btnCloseDetail').on('click',()=>$('#detailModal').removeClass('show'));
-$('#detailModal').on('click',function(e){ if(e.target===this) $(this).removeClass('show'); });
+$(document).on('click', '#btnCloseDetail', ()=>$('#detailModal').removeClass('show'));
+$(document).on('click', '#detailModal', function(e){ if(e.target===this) $(this).removeClass('show'); });
 
 // Add/Edit modal
-$('#btnAddArt').on('click',()=>{
+$(document).on('click', '#btnAddArt', ()=>{
   editingArt = null;
   $('#modalTitle').text('Thêm tác phẩm mới');
+  $('#btnSubmitArt').text('Thêm mới');
   $('#artForm')[0].reset();
   $('#artModal').addClass('show');
 });
 
-$('#btnCancelModal').on('click',()=>$('#artModal').removeClass('show'));
-$('#artModal').on('click',function(e){ if(e.target===this) $(this).removeClass('show'); });
+$(document).on('click', '#btnCancelModal', ()=>$('#artModal').removeClass('show'));
+$(document).on('click', '#artModal', function(e){ if(e.target===this) $(this).removeClass('show'); });
+
+// Artist modal events
+$(document).on('click', '#btnAddArtist', ()=>{
+  editingArtist = null;
+  $('#modalTitleArtist').text('Thêm tác giả mới');
+  $('#btnSubmitArtist').text('Thêm mới');
+  $('#artistForm')[0].reset();
+  $('#artistModal').addClass('show');
+});
+
+$(document).on('click', '#btnCancelArtistModal', ()=>$('#artistModal').removeClass('show'));
+$(document).on('click', '#artistModal', function(e){ if(e.target===this) $(this).removeClass('show'); });
+
+$(document).on('click', '#btnRefreshArtists', function() {
+  const $btn = $(this);
+  $btn.prop('disabled', true).html('<span class="spinner"></span>');
+  window.dataSdk.fetchArtists().then(() => {
+    $btn.prop('disabled', false).html('<i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Cập nhật mới');
+    lucide.createIcons();
+    showToast('Đã làm mới danh sách tác giả', 'success');
+  });
+});
+
+$(document).on('submit', '#artistForm', async function(e){
+  e.preventDefault();
+  const $btn = $('#btnSubmitArtist');
+  $btn.prop('disabled',true).html('<span class="spinner"></span>');
+  
+  const data = {
+    name: $('#fArtistName').val().trim(),
+    avatar: $('#fArtistAvatar').val().trim(),
+    bio: $('#fArtistBio').val().trim()
+  };
+
+  if(editingArtist){
+    const res = await window.dataSdk.updateArtist(editingArtist.id, data);
+    $btn.prop('disabled',false).text('Cập nhật');
+    if(res.isOk){ showToast('Đã cập nhật tác giả!'); $('#artistModal').removeClass('show'); }
+    else showToast('Lỗi cập nhật','error');
+  } else {
+    const res = await window.dataSdk.createArtist(data);
+    $btn.prop('disabled',false).text('Thêm mới');
+    if(res.isOk){ showToast('Đã thêm tác giả!'); $('#artistModal').removeClass('show'); }
+    else showToast('Lỗi thêm tác giả','error');
+  }
+});
+
+$(document).on('click','.edit-btn-artist',function(){
+  const id = $(this).data('id');
+  const artist = allArtists.find(a=>a.id == id);
+  if(!artist) return;
+  editingArtist = artist;
+  $('#modalTitleArtist').text('Chỉnh sửa tác giả');
+  $('#btnSubmitArtist').text('Cập nhật');
+  $('#fArtistName').val(artist.name||'');
+  $('#fArtistAvatar').val(artist.avatar||'');
+  $('#fArtistBio').val(artist.bio||'');
+  $('#artistModal').addClass('show');
+});
+
+$(document).on('click','.action-del-artist',function(){ deleteArtistConfirmId = $(this).data('id'); renderArtistsTable(); });
+$(document).on('click','.btn-cancel-del-artist',function(){ deleteArtistConfirmId = null; renderArtistsTable(); });
+$(document).on('click','.btn-confirm-del-artist',async function(){
+  const id = $(this).data('id');
+  $(this).prop('disabled',true).html('<span class="spinner"></span>');
+  const res = await window.dataSdk.deleteArtist(id);
+  if(res.isOk){ showToast('Đã xóa tác giả!'); deleteArtistConfirmId=null; }
+  else { showToast('Lỗi xóa','error'); $(this).prop('disabled',false).text('Xóa'); deleteArtistConfirmId=null; renderArtistsTable(); }
+});
+
+// Nút Tự động thêm Tác giả
+$(document).on('click', '#btnAutoAddArtist', async function() {
+  const $btn = $(this);
+  $btn.prop('disabled', true).html('<span class="spinner"></span>');
+
+  if (allArtists.length >= 100) { 
+    showToast('Đã đạt giới hạn 100 tác giả', 'error'); 
+    $btn.prop('disabled', false).html('<i data-lucide="zap" style="width:14px;height:14px"></i> Tự động thêm');
+    lucide.createIcons();
+    return; 
+  }
+
+  const randNum = Math.floor(Math.random() * 10000);
+  const newArtistData = {
+    name: 'Tác giả tự động ' + randNum,
+    avatar: `https://i.pravatar.cc/150?u=${randNum}`,
+    bio: 'Đây là tiểu sử được tạo tự động cho tác giả số ' + randNum + '. Tác giả này chuyên về các tác phẩm nghệ thuật sáng tạo.'
+  };
+
+  const res = await window.dataSdk.createArtist(newArtistData);
+  
+  $btn.prop('disabled', false).html('<i data-lucide="zap" style="width:14px;height:14px"></i> Tự động thêm');
+  lucide.createIcons();
+  
+  if (res.isOk) showToast('Đã tự động thêm tác giả thành công!');
+  else showToast('Lỗi khi tự động thêm tác giả', 'error');
+});
+
+// Xóa tất cả Tác giả
+$(document).on('click', '#btnDeleteAllArtists', async function() {
+  if (allArtists.length === 0) {
+    showToast('Không có tác giả nào để xóa!', 'error');
+    return;
+  }
+  if (!confirm(`Bạn có chắc chắn muốn xóa TẤT CẢ ${allArtists.length} tác giả không? Hành động này không thể hoàn tác!`)) {
+    return;
+  }
+
+  const $btn = $(this);
+  $btn.prop('disabled', true).html('<span class="spinner"></span> Đang xóa...');
+  
+  const res = await window.dataSdk.deleteAllArtists(allArtists);
+  
+  if (res.isOk) showToast('Đã xóa tất cả tác giả!');
+  else showToast('Lỗi khi xóa tất cả tác giả', 'error');
+  
+  $btn.prop('disabled', false).html('<i data-lucide="trash-2" style="width:14px;height:14px"></i> Xóa tất cả');
+  lucide.createIcons();
+});
+
+// Nút Cập nhật mới (Làm mới dữ liệu từ API)
+$(document).on('click', '#btnRefreshArt', function() {
+  const $btn = $(this);
+  $btn.prop('disabled', true).html('<span class="spinner"></span>');
+  $('#reloadDataBtn').click(); // Kích hoạt logic tải dữ liệu từ MockAPI đã có
+  showToast('Đang cập nhật dữ liệu mới...', 'success');
+  setTimeout(() => {
+    $btn.prop('disabled', false).html('<i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Cập nhật mới');
+    lucide.createIcons();
+  }, 1500);
+});
 
 // Nút Tự động thêm vào MockAPI
-$('#btnAutoAddArt').on('click', async function() {
+$(document).on('click', '#btnAutoAddArt', async function() {
   const $btn = $(this);
   $btn.prop('disabled', true).html('<span class="spinner"></span>');
 
@@ -484,15 +757,17 @@ $('#btnAutoAddArt').on('click', async function() {
     return; 
   }
 
+  const randNum = Math.floor(Math.random() * 10000);
   const randomPal = randomPalette();
   const newArtData = {
-    title: 'Tác phẩm tự động ' + Math.floor(Math.random() * 10000),
+    title: 'Tác phẩm tự động ' + randNum,
     artist: 'Họa sĩ ảo ' + Math.floor(Math.random() * 100),
+    authorImage: `https://i.pravatar.cc/150?u=${randNum}`,
     style: STYLES[Math.floor(Math.random() * STYLES.length)],
-    description: 'Tác phẩm này được tạo ngẫu nhiên để kiểm thử tính năng hiển thị.',
-    imageSrc: '',
-    resolution: '1920x1080',
-    likes: Math.floor(Math.random() * 200),
+    description: 'Tác phẩm này được tạo ngẫu nhiên với đầy đủ hình ảnh và thông tin để kiểm thử hiển thị.',
+    imageSrc: `https://picsum.photos/800/1200?random=${randNum}`,
+    resolution: '800x1200',
+    likes: Math.floor(Math.random() * 500),
     status: 'pending', // Bạn có thể đổi sang 'approved' nếu muốn hiển thị luôn
     created_at: new Date().toISOString(),
     color1: randomPal[0], color2: randomPal[1], color3: randomPal[2], pattern: randomPattern()
@@ -510,21 +785,42 @@ $('#btnAutoAddArt').on('click', async function() {
 // Edit
 $(document).on('click','.edit-btn',function(){
   const id = $(this).data('id');
-  const art = allArtworks.find(a=>a.__backendId===id);
+  const art = allArtworks.find(a=>a.__backendId == id);
   if(!art) return;
   editingArt = art;
   $('#modalTitle').text('Chỉnh sửa tác phẩm');
+  $('#btnSubmitArt').text('Cập nhật mới');
   $('#fTitle').val(art.title);
   $('#fArtist').val(art.artist);
   $('#fStyle').val(art.style);
   $('#fDesc').val(art.description||'');
   $('#fResolution').val(art.resolution||'');
   $('#fImageSrc').val(art.imageSrc||'');
+  $('#fAuthorImage').val(art.authorImage||'');
   $('#artModal').addClass('show');
 });
 
+// Site Settings
+$(document).on('click', '#btnEditSiteInfo', function() {
+  $('#fGalleryName').val(defaultConfig.gallery_name);
+  $('#fGalleryTagline').val(defaultConfig.gallery_tagline);
+  $('#siteSettingsModal').addClass('show');
+});
+
+$(document).on('click', '#btnCancelSiteSettings', ()=>$('#siteSettingsModal').removeClass('show'));
+$(document).on('click', '#siteSettingsModal', function(e){ if(e.target===this) $(this).removeClass('show'); });
+
+$(document).on('submit', '#siteSettingsForm', function(e) {
+  e.preventDefault();
+  defaultConfig.gallery_name = $('#fGalleryName').val().trim();
+  defaultConfig.gallery_tagline = $('#fGalleryTagline').val().trim();
+  applyConfig(defaultConfig);
+  $('#siteSettingsModal').removeClass('show');
+  showToast('Đã cập nhật thông tin trang!');
+});
+
 // Submit form
-$('#artForm').on('submit', async function(e){
+$(document).on('submit', '#artForm', async function(e){
   e.preventDefault();
   const $btn = $('#btnSubmitArt');
   $btn.prop('disabled',true).html('<span class="spinner"></span>');
@@ -532,23 +828,24 @@ $('#artForm').on('submit', async function(e){
   const data = {
     title: $('#fTitle').val().trim(),
     artist: $('#fArtist').val().trim(),
+    authorImage: $('#fAuthorImage').val().trim(),
     style: $('#fStyle').val(),
     description: $('#fDesc').val().trim(),
     imageSrc: $('#fImageSrc').val().trim(),
-    resolution: $('#fResolution').val().trim() // Lấy giá trị độ phân giải
+    resolution: $('#fResolution').val().trim()
   };
 
   if(editingArt){
     const res = await window.dataSdk.update({...editingArt, ...data});
-    $btn.prop('disabled',false).text('Lưu');
+    $btn.prop('disabled',false).text('Cập nhật mới');
     if(res.isOk){ showToast('Đã cập nhật!'); $('#artModal').removeClass('show'); }
     else showToast('Lỗi cập nhật','error');
   } else {
-    if(allArtworks.length>=999){ showToast('Đã đạt giới hạn 999 tác phẩm','error'); $btn.prop('disabled',false).text('Lưu'); return; }
+    if(allArtworks.length>=999){ showToast('Đã đạt giới hạn 999 tác phẩm','error'); $btn.prop('disabled',false).text('Thêm mới'); return; }
     let newArtData = {
         ...data,
         likes: 0,
-        status: 'pending',
+        status: 'approved',
         created_at: new Date().toISOString()
     };
     // Chỉ tạo art-gen nếu không có link ảnh
@@ -568,18 +865,40 @@ $(document).on('click','.action-del',function(){ deleteConfirmId = $(this).data(
 $(document).on('click','.btn-cancel-del',function(){ deleteConfirmId = null; renderTable(); });
 $(document).on('click','.btn-confirm-del',async function(){
   const id = $(this).data('id');
-  const art = allArtworks.find(a=>a.__backendId===id);
+  const art = allArtworks.find(a=>a.__backendId == id);
   if(!art) return;
   $(this).prop('disabled',true).html('<span class="spinner"></span>');
   const res = await window.dataSdk.delete(art);
   if(res.isOk){ showToast('Đã xóa!'); deleteConfirmId=null; }
-  else showToast('Lỗi xóa','error');
+  else { showToast('Lỗi xóa','error'); $(this).prop('disabled',false).text('Xóa'); deleteConfirmId=null; renderTable(); }
+});
+
+// Delete All
+$(document).on('click', '#btnDeleteAllArt', async function() {
+  if (allArtworks.length === 0) {
+    showToast('Không có tác phẩm nào để xóa!', 'error');
+    return;
+  }
+  if (!confirm(`Bạn có chắc chắn muốn xóa TẤT CẢ ${allArtworks.length} tác phẩm không? Hành động này không thể hoàn tác!`)) {
+    return;
+  }
+
+  const $btn = $(this);
+  $btn.prop('disabled', true).html('<span class="spinner"></span> Đang xóa...');
+  
+  const res = await window.dataSdk.deleteAll(allArtworks);
+  
+  if (res.isOk) showToast('Đã xóa tất cả tác phẩm!');
+  else showToast('Lỗi khi xóa tất cả', 'error');
+  
+  $btn.prop('disabled', false).html('<i data-lucide="trash-2" style="width:14px;height:14px"></i> Xóa tất cả');
+  lucide.createIcons();
 });
 
 // Approve / Reject
 $(document).on('click','.approve-btn',async function(){
   const id = $(this).data('id');
-  const art = allArtworks.find(a=>a.__backendId===id);
+  const art = allArtworks.find(a=>a.__backendId == id);
   if(!art) return;
   $(this).prop('disabled',true).html('<span class="spinner"></span>');
   const res = await window.dataSdk.update({...art, status:'approved'});
@@ -589,7 +908,7 @@ $(document).on('click','.approve-btn',async function(){
 
 $(document).on('click','.reject-btn',async function(){
   const id = $(this).data('id');
-  const art = allArtworks.find(a=>a.__backendId===id);
+  const art = allArtworks.find(a=>a.__backendId == id);
   if(!art) return;
   $(this).prop('disabled',true).html('<span class="spinner"></span>');
   const res = await window.dataSdk.update({...art, status:'rejected'});
@@ -634,26 +953,28 @@ function applyConfig(cfg){
   });
 }
 
-window.elementSdk.init({
-  defaultConfig,
-  onConfigChange: async (cfg) => applyConfig(cfg),
-  mapToCapabilities: (cfg) => ({
-    recolorables: [
-      {get:()=>cfg.background_color||defaultConfig.background_color, set:v=>{cfg.background_color=v; window.elementSdk.setConfig({background_color:v})}},
-      {get:()=>cfg.surface_color||defaultConfig.surface_color, set:v=>{cfg.surface_color=v; window.elementSdk.setConfig({surface_color:v})}},
-      {get:()=>cfg.text_color||defaultConfig.text_color, set:v=>{cfg.text_color=v; window.elementSdk.setConfig({text_color:v})}},
-      {get:()=>cfg.primary_action||defaultConfig.primary_action, set:v=>{cfg.primary_action=v; window.elementSdk.setConfig({primary_action:v})}},
-      {get:()=>cfg.secondary_action||defaultConfig.secondary_action, set:v=>{cfg.secondary_action=v; window.elementSdk.setConfig({secondary_action:v})}}
-    ],
-    borderables: [],
-    fontEditable: {get:()=>cfg.font_family||defaultConfig.font_family, set:v=>{cfg.font_family=v; window.elementSdk.setConfig({font_family:v})}},
-    fontSizeable: {get:()=>cfg.font_size||defaultConfig.font_size, set:v=>{cfg.font_size=v; window.elementSdk.setConfig({font_size:v})}}
-  }),
-  mapToEditPanelValues: (cfg) => new Map([
-    ['gallery_name', cfg.gallery_name||defaultConfig.gallery_name],
-    ['gallery_tagline', cfg.gallery_tagline||defaultConfig.gallery_tagline]
-  ])
-});
+if (window.elementSdk) {
+  window.elementSdk.init({
+    defaultConfig,
+    onConfigChange: async (cfg) => applyConfig(cfg),
+    mapToCapabilities: (cfg) => ({
+      recolorables: [
+        {get:()=>cfg.background_color||defaultConfig.background_color, set:v=>{cfg.background_color=v; window.elementSdk.setConfig({background_color:v})}},
+        {get:()=>cfg.surface_color||defaultConfig.surface_color, set:v=>{cfg.surface_color=v; window.elementSdk.setConfig({surface_color:v})}},
+        {get:()=>cfg.text_color||defaultConfig.text_color, set:v=>{cfg.text_color=v; window.elementSdk.setConfig({text_color:v})}},
+        {get:()=>cfg.primary_action||defaultConfig.primary_action, set:v=>{cfg.primary_action=v; window.elementSdk.setConfig({primary_action:v})}},
+        {get:()=>cfg.secondary_action||defaultConfig.secondary_action, set:v=>{cfg.secondary_action=v; window.elementSdk.setConfig({secondary_action:v})}}
+      ],
+      borderables: [],
+      fontEditable: {get:()=>cfg.font_family||defaultConfig.font_family, set:v=>{cfg.font_family=v; window.elementSdk.setConfig({font_family:v})}},
+      fontSizeable: {get:()=>cfg.font_size||defaultConfig.font_size, set:v=>{cfg.font_size=v; window.elementSdk.setConfig({font_size:v})}}
+    }),
+    mapToEditPanelValues: (cfg) => new Map([
+      ['gallery_name', cfg.gallery_name||defaultConfig.gallery_name],
+      ['gallery_tagline', cfg.gallery_tagline||defaultConfig.gallery_tagline]
+    ])
+  });
+}
 
 // Data SDK
 const dataHandler = {
