@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <title>Document</title>
+</head>
+<body>
+    <h1 id="hello">xin chào</h1>
+    <h2 id="class">lớp : cntt 1908</h2>
+    <h3 class="FE">FE</h3>
+    <script>
+        var h1EL = document.getElementById("hello");
+        var h2EL = document.getElementById("class");
+        var h3EL = document.querySelector(".FE");
+        //cachs jquery
+        var h1JQ = $("#hello");
+        var h2JQ = $("#class");
+        var h3JQ = $(".FE");
+        // style
+        $("#hello").css("color", "red");
+        $("#class").css("color", "blue"); 
+        $(".FE").css("color", "green");
+    </script>
+</body>
+</html>
