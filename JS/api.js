@@ -472,6 +472,41 @@ $('#btnAddArt').on('click',()=>{
 $('#btnCancelModal').on('click',()=>$('#artModal').removeClass('show'));
 $('#artModal').on('click',function(e){ if(e.target===this) $(this).removeClass('show'); });
 
+// Nút Tự động thêm vào MockAPI
+$('#btnAutoAddArt').on('click', async function() {
+  const $btn = $(this);
+  $btn.prop('disabled', true).html('<span class="spinner"></span>');
+
+  if (allArtworks.length >= 999) { 
+    showToast('Đã đạt giới hạn 999 tác phẩm', 'error'); 
+    $btn.prop('disabled', false).html('<i data-lucide="zap" style="width:14px;height:14px"></i> Tự động thêm');
+    lucide.createIcons();
+    return; 
+  }
+
+  const randomPal = randomPalette();
+  const newArtData = {
+    title: 'Tác phẩm tự động ' + Math.floor(Math.random() * 10000),
+    artist: 'Họa sĩ ảo ' + Math.floor(Math.random() * 100),
+    style: STYLES[Math.floor(Math.random() * STYLES.length)],
+    description: 'Tác phẩm này được tạo ngẫu nhiên để kiểm thử tính năng hiển thị.',
+    imageSrc: '',
+    resolution: '1920x1080',
+    likes: Math.floor(Math.random() * 200),
+    status: 'pending', // Bạn có thể đổi sang 'approved' nếu muốn hiển thị luôn
+    created_at: new Date().toISOString(),
+    color1: randomPal[0], color2: randomPal[1], color3: randomPal[2], pattern: randomPattern()
+  };
+
+  const res = await window.dataSdk.create(newArtData);
+  
+  $btn.prop('disabled', false).html('<i data-lucide="zap" style="width:14px;height:14px"></i> Tự động thêm');
+  lucide.createIcons();
+  
+  if (res.isOk) showToast('Đã tự động tạo và thêm tác phẩm thành công!');
+  else showToast('Lỗi khi tự động thêm', 'error');
+});
+
 // Edit
 $(document).on('click','.edit-btn',function(){
   const id = $(this).data('id');
