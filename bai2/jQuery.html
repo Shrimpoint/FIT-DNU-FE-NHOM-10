@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+$(document).ready(function(){
+    $("#DongY").click(function(){
+        $("p").show();
+    });
+
+    $("#TuChoi").mouseenter(function(){
+        $("#TuChoi").hide();
+    });
+  $("#TuChoi").mouseleave(function(){
+        $("#TuChoi").show();
+  })
+});
+    </script>
+    <title>Document</title>
+</head>
+<body>
+    <p>di choi khong ? </p>
+    
+
+<button id="DongY">Dong y</button>
+<button id="TuChoi">tu choi</button>
+</body>
+</html>
