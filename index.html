@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Art Gallery Platform</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -309,15 +310,28 @@
     </div>
    </div><!-- Login Modal -->
    <div class="modal-overlay" id="loginModal">
-    <div class="modal-box light" style="max-width:350px; text-align: center;">
-     <h3>Xác thực Admin</h3>
-     <p style="font-size:13px;color:#666;margin-bottom:16px;">Vui lòng nhập mật khẩu để truy cập.</p>
-     <div class="form-group" style="text-align:left;">
-      <input type="password" id="adminPassword" placeholder="Nhập mật khẩu (admin)..." style="text-align:center;">
-      <div id="loginError" style="color:#e74c3c;font-size:12px;margin-top:8px;display:none;text-align:center;">Mật khẩu không đúng!</div>
+    <div class="modal-box light" style="max-width:380px; text-align: center;">
+     <button type="button" class="modal-close" id="btnCancelLogin" aria-label="Đóng đăng nhập">×</button>
+     <h3>Đăng nhập Admin</h3>
+     <p style="font-size:13px;color:#666;margin-bottom:18px;">Nhập thông tin quản trị để truy cập dashboard.</p>
+     <div class="form-group login-field" style="text-align:left;">
+      <label for="adminUser">Tên đăng nhập</label>
+      <input type="text" id="adminUser" class="login-input" placeholder="admin">
      </div>
-     <div class="modal-actions" style="justify-content:center;margin-top:16px;">
-      <button class="btn-cancel" id="btnCancelLogin">Hủy</button>
+     <div class="form-group login-field" style="text-align:left;">
+      <label for="adminPassword">Mật khẩu</label>
+      <div class="password-input-wrap">
+       <input type="password" id="adminPassword" class="login-input" placeholder="Nhập mật khẩu...">
+       <button type="button" class="toggle-password" id="togglePassword" aria-label="Hiện mật khẩu"><i data-lucide="eye" style="width:18px;height:18px"></i></button>
+      </div>
+     </div>
+     <div class="login-options">
+      <label><input type="checkbox" id="rememberAdmin"> Ghi nhớ đăng nhập</label>
+      <span style="font-size:12px;color:#999;">admin / admin</span>
+     </div>
+     <div id="loginError" style="color:#e74c3c;font-size:12px;margin-top:12px;display:none;text-align:center;min-height:18px;">Thông tin đăng nhập không đúng.</div>
+     <div class="modal-actions" style="justify-content:center;margin-top:18px;gap:12px;">
+      <button class="btn-cancel" id="btnCancelLoginBottom">Hủy</button>
       <button class="btn-submit" id="btnSubmitLogin">Đăng nhập</button>
      </div>
     </div>

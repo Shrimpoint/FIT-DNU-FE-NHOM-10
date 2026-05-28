@@ -173,6 +173,9 @@ let editingArtist = null;
 let deleteConfirmId = null;
 let deleteArtistConfirmId = null;
 let likedSet = new Set(JSON.parse(localStorage.getItem('liked_arts') || '[]'));
+const ADMIN_USERNAME = 'admin';
+const ADMIN_PASSWORD = 'admin'; // Mật khẩu mặc định là 'admin'
+const ADMIN_USER_STORAGE_KEY = 'galleryAdminUsername';
 
 const STYLES = ['Trừu tượng','Ấn tượng','Tối giản','Siêu thực'];
 const STYLE_COLORS = {'Trừu tượng':'#6c5ce7','Ấn tượng':'#00b894','Tối giản':'#636e72','Siêu thực':'#e17055'};
@@ -431,8 +434,6 @@ function renderPending(){
 }
 
 // Admin login
-const ADMIN_PASSWORD = "admin"; // Mật khẩu mặc định là "admin"
-
 function switchToView(view) {
   currentView = view;
   $('#viewToggle button').removeClass('active');
@@ -460,30 +461,55 @@ $(document).on('click','#viewToggle button',function(){
   
   if (view === 'admin') {
     $('#loginModal').addClass('show');
-    $('#adminPassword').val('').focus();
-    $('#loginError').hide();
+    $('#adminUser').val(localStorage.getItem(ADMIN_USER_STORAGE_KEY) || '');
+    $('#rememberAdmin').prop('checked', !!localStorage.getItem(ADMIN_USER_STORAGE_KEY));
+    $('#loginError').hide().text('Thông tin đăng nhập không đúng.');
+    if ($('#adminUser').val()) $('#adminPassword').val('').focus(); else $('#adminUser').focus();
+    $('#loginModal .modal-box').removeClass('shake');
   } else {
     switchToView('public');
   }
 });
 
-$(document).on('click', '#btnCancelLogin', function() {
+$(document).on('click', '#btnCancelLogin, #btnCancelLoginBottom', function() {
   $('#loginModal').removeClass('show');
 });
 
+$(document).on('click', '#togglePassword', function() {
+  const $pass = $('#adminPassword');
+  const isHidden = $pass.attr('type') === 'password';
+  $pass.attr('type', isHidden ? 'text' : 'password');
+  $(this).html(`<i data-lucide="${isHidden ? 'eye-off' : 'eye'}" style="width:18px;height:18px"></i>`);
+  lucide.createIcons();
+});
+
 $(document).on('click', '#btnSubmitLogin', function() {
+  const user = $('#adminUser').val().trim();
   const pwd = $('#adminPassword').val();
-  if (pwd === ADMIN_PASSWORD) {
+  const remember = $('#rememberAdmin').prop('checked');
+
+  if (!user || !pwd) {
+    $('#loginError').text('Vui lòng nhập tên đăng nhập và mật khẩu.').show();
+    $('#loginModal .modal-box').addClass('shake');
+    setTimeout(() => $('#loginModal .modal-box').removeClass('shake'), 400);
+    return;
+  }
+
+  if (user === ADMIN_USERNAME && pwd === ADMIN_PASSWORD) {
+    if (remember) localStorage.setItem(ADMIN_USER_STORAGE_KEY, user);
+    else localStorage.removeItem(ADMIN_USER_STORAGE_KEY);
     $('#loginModal').removeClass('show');
     switchToView('admin');
     showToast('Đăng nhập thành công!');
   } else {
-    $('#loginError').show();
+    $('#loginError').text('Tên đăng nhập hoặc mật khẩu không đúng.').show();
+    $('#loginModal .modal-box').addClass('shake');
+    setTimeout(() => $('#loginModal .modal-box').removeClass('shake'), 400);
   }
 });
 
 $(document).on('click', '#loginModal', function(e){ if(e.target===this) $(this).removeClass('show'); });
-$(document).on('keypress', '#adminPassword', function(e) {
+$(document).on('keypress', '#adminUser, #adminPassword', function(e) {
   if (e.which == 13) {
     $('#btnSubmitLogin').click();
   }
