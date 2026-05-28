@@ -338,69 +338,7 @@
    </div><!-- Toast -->
    <div class="toast-container" id="toastContainer"></div>
   </div>
-  <script>
-  // Nút tải dữ liệu từ MockAPI trong admin panel
-  document.getElementById('reloadDataBtn').addEventListener('click', async function() {
-    const statusDiv = document.getElementById('reloadStatus');
-    const btn = this;
-    
-    try {
-      btn.disabled = true;
-      statusDiv.innerHTML = '<span style="color:#0066cc">Đang tải...</span>';
-      
-      // Lấy dữ liệu từ MockAPI
-      const response = await fetch('https://69fc3760fce564e2591778d9.mockapi.io/api/v1/ArtWorks');
-      
-      if (!response.ok) {
-        throw new Error('Lỗi khi tải dữ liệu: ' + response.statusText);
-      }
-      
-      const artworks = await response.json();
-      
-      if (!artworks || artworks.length === 0) {
-        statusDiv.innerHTML = '<span style="color:#ff9933">⚠️ MockAPI trống</span>';
-        btn.disabled = false;
-        return;
-      }
-      //
-      // Cập nhật allArtworks với dữ liệu mới
-      const formattedData = artworks.map(item => ({
-        __backendId: item.id,
-        title: item.ArtWorksName,
-        artist: item.Author,
-        authorImage: item.AuthorImage || item.AuthorAvatar || item.authorImage || item.authorAvatar || '',
-        style: item.Categories,
-        description: item.Description,
-        created_at: item.PostingDate,
-        resolution: item.Resolution,
-        likes: parseInt(item.likes, 10) || 0,
-        status: item.status || 'approved',
-        imageSrc: item.imageSrc || '',
-        color1: item.color1, color2: item.color2, color3: item.color3, pattern: item.pattern
-      }));
-      
-      allArtworks = formattedData;
-      renderAdmin();
-      renderGallery();
-      
-      // Tải dữ liệu Tác giả
-      const artistsResponse = await fetch('https://69fc3760fce564e2591778d9.mockapi.io/api/v1/Artists');
-      if (artistsResponse.ok) {
-        allArtists = await artistsResponse.json();
-        if (typeof currentSection !== 'undefined' && currentSection === 'artists') renderArtistsTable();
-      }
-      
-      statusDiv.innerHTML = '<span style="color:#00b894">✓ Tải thành công!</span>';
-      
-      console.log('Loaded artworks:', formattedData);
-      
-    } catch (error) {
-      statusDiv.innerHTML = `<span style="color:#d63031">✗ ${error.message}</span>`;
-      console.error('Load error:', error);
-    } finally {
-      btn.disabled = false;
-    }
-  });
-  </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9fc0a39d0169e34d',t:'MTc3ODgzMjM0Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+  <script src="JS/reload-data.js"></script>
+ </body>
+</html>
 </html>
